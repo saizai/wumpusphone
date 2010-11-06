@@ -26,7 +26,7 @@ Adhearsion::Configuration.configure do |config|
   
   # By default Asterisk is enabled with the default settings
   config.enable_asterisk
-  config.asterisk.enable_ami :host => "127.0.0.1", :username => "ahn_ami", :password => "hEsutRahuhuSPa*r!NUt", :events => true
+#  config.asterisk.enable_ami :host => "127.0.0.1", :username => "adhearsion", :password => "200", :events => true
   
   # config.enable_drb
   

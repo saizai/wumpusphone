@@ -3,6 +3,8 @@ adhearsion {
   # answer
   # voicemail_main
   
+  dtmf '1234567890'
+  
   self.call.variables[:destination] = get_variable("destination")
   dial self.call.variables[:destination]
   
