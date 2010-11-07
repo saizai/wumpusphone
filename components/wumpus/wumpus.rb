@@ -22,56 +22,22 @@ methods_for :dialplan do
 end
 
 class Wumpus
-
   def initialize(call)
     @call = call
     config = COMPONENTS.wumpus
-    reset
     
     @current_node = -1
-    
+    @current_wumpus_node 
+    @last_wumpus_node 
+    @moves = 0
   end
   
   def start
     loop do
-      say_number
-      collect_attempt
-      verify_attempt
+      @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
+      @moves += 1
+      move_wumpus if (@moves % 2) == 0
+      
     end
-  end
-
-  def random_number
-    rand(10).to_s
-  end
-
-  def update_number
-    @number << random_number
-  end
-
-  def say_number
-    update_number
-    @call.say_digits @number
-  end
-
-  def collect_attempt
-    @attempt = @call.input @number.length
-  end
-
-  def verify_attempt
-    if attempt_correct? 
-      @call.play 'good'
-    else
-      @call.play %W[#{@number.length-1} times wrong-try-again-smarty]
-      reset
-    end
-  end
-
-  def attempt_correct?
-    @attempt == @number
-  end
-  
-  def reset
-    @attempt, @number = '', ''
-  end
-  
+  end  
 end
