@@ -29,10 +29,24 @@ class Wumpus
     @current_node = -1
     @current_wumpus_node 
     @last_wumpus_node 
+    @wumpus_turn 
     @moves = 0
   end
 
+  def move_wumpus
+    came_from = @config.nodes[@current_wumpus_node]['orientation'].index(@last_wumpus_node)
+    @last_wumpus_node = @current_wumpus_node
+    @current_wumpus_node = @config.nodes[@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
+    @wumpus_turn = -@wumpus_turn
+  end 
 
+  def seed_wumpus
+    # hack to make the wumpus far from where the player is now
+    @current_wumpus_node = (10 + @current_node) % 20
+    @last_wumpus_node = @current_wumpus_node ^ 1
+    @wumpus_turn ||= 1 # 1 or -1, indicating whether to turn left or right next
+    @wumpus_hp ||= 3
+  end
 
   def start
     loop do
