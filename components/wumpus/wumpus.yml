@@ -1,4 +1,17 @@
 # You can use this file for component-specific configuration.
+holds:
+  0:
+    name: caller_id
+    clicks: 1
+    dtmf: '97806'
+  1:
+    name: priority_override
+    clicks: 2
+    dtmf: '7978'
+  2:
+    name: insert_coin
+    clicks: 3
+    dtmf: '1295'
 
 nodes:
   -1: 

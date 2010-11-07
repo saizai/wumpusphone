@@ -16,7 +16,7 @@ methods_for :global do
 end
 
 methods_for :dialplan do
-  def start_wumpus
+  def wumpus
     Wumpus.new(self).start
   end
 end
@@ -24,26 +24,84 @@ end
 class Wumpus
   def initialize(call)
     @call = call
-    config = COMPONENTS.wumpus
+    @config = COMPONENTS.wumpus
     
     @current_node = -1
-    @current_wumpus_node 
-    @last_wumpus_node 
     @moves = 0
+    
+    seed_wumpus
   end
-
-
-
+  
   def start
     loop do
+      move_wumpus if (@moves % 2) == 0
       @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
       @moves += 1
-      move_wumpus if (@moves % 2) == 0
       update_state
     end
   end  
   
-  def update_state
-    new_node = config['nodes'][@current_node.to_s]
+  def current_node
+    @config['nodes'][@current_node]
   end
+  
+  def current_menu
+    File.join(Dir.pwd, 'menus', current_node['name'])
+  end
+  
+  def update_state
+    @current_node = current_node['options'][@choice]
+    hold if @current_node == @current_wumpus_node
+    
+  end
+  
+  def current_hold
+    @config['holds'][rand(3)]
+  end
+  
+  def hold
+    intro = true
+    key = nil
+    while !phreaked(key) do
+      key = nil
+      if intro
+        key ||= @call.interruptible_play_with_autovon File.join('Dir.pwd', 'holds', current_hold['name']) 
+        intro = false
+      end
+      key ||= @call.interruptible_play_with_autovon File.join('Dir.pwd', 'holds', 'song_that_never_ends')
+    end
+    
+    # Successfully phreaked. Play the reward.
+    current_hold['clicks'].times { dtmf '*' }
+    dtmf current_hold['dtmf']
+  end
+  
+  # a variant of interruptible_play, this also takes the extra four DTMF tones
+  def interruptible_play_with_autovon(*files)
+    files.flatten.each do |file|
+      result = result_digit_from response("STREAM FILE", file, "1234567890*#abcd")
+      return result if result != 0.chr
+    end
+    nil
+  end
+  
+  def phreaked? key
+    case current_hold['name']
+    when 'caller_id':
+      @call.variables['callerid'] =~ /^1?684/ # extract area code
+    when 'priority_override':
+      key =~ /(a|b|c|d)/
+    when 'insert_coin':
+      key =~ /\$/ # TODO: get Asterisk to recognize coins and output them as keys 
+    else
+      raise 'unknown phreaking challenge'
+    end
+  end
+  
+  # Called if the wumpus moves onto the current position
+  def kill_wumpus
+    @wumpus_hp -= 1
+    @call.play File.join(Dir.pwd, 'wumpus', "death_#{3 - @wumpus_hp}")
+  end
+  
 end
