@@ -5,7 +5,7 @@ unless defined? Adhearsion
     require File.dirname(__FILE__) + "/../adhearsion/lib/adhearsion.rb"
   else  
     require 'rubygems'
-    gem 'adhearsion', '>= 0.7.999'
+    gem 'adhearsion', '>= 1.0.0'
     require 'adhearsion'
   end
 end
@@ -48,3 +48,4 @@ Adhearsion::Configuration.configure do |config|
 end
 
 Adhearsion::Initializer.start_from_init_file(__FILE__, File.dirname(__FILE__) + "/..")
+
