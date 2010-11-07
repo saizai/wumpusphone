@@ -37,7 +37,11 @@ class Wumpus
       @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
       @moves += 1
       move_wumpus if (@moves % 2) == 0
-      
+      update_state
     end
   end  
+  
+  def update_state
+    new_node = config['nodes'][@current_node.to_s]
+  end
 end
