@@ -31,7 +31,9 @@ class Wumpus
     @last_wumpus_node 
     @moves = 0
   end
-  
+
+
+
   def start
     loop do
       @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
