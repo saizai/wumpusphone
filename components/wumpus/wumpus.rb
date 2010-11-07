@@ -31,7 +31,9 @@ class Wumpus
     @current_node = -1
     
   end
-  
+
+
+
   def start
     loop do
       say_number

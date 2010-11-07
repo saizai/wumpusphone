@@ -1,1 +1,46 @@
 # You can use this file for component-specific configuration.
+
+nodes:
+  -1: 
+    name: introduction
+    options: {7: 0}
+  0:
+    orientation: [1, 4, 16]
+  1:
+    orientation: [2, 0, 18]
+  2:
+    orientation: [3, 5, 1]
+  3:
+    orientation: [7, 2, 19]
+  4:
+    orientation: [5, 8, 0]
+  5:
+    orientation: [6, 4, 2]
+  6:
+    orientation: [7, 9, 5]
+  7:
+    orientation: [11, 6, 3]
+  8:
+    orientation: [9, 12, 4]
+  9:
+    orientation: [10, 8, 6]
+  10:
+    orientation: [11, 13, 9]
+  11:
+    orientation: [15, 10, 7]
+  12:
+    orientation: [13, 16, 8]
+  13:
+    orientation: [14, 12, 10]
+  14:
+    orientation: [15, 17, 13]
+  15:
+    orientation: [19, 14, 11]
+  16:
+    orientation: [17, 0, 12]
+  17:
+    orientation: [18, 16, 14]
+  18:
+    orientation: [19, 1, 17]
+  19:
+    orientation: [3, 18, 15]
