@@ -32,26 +32,16 @@ class Wumpus
     seed_wumpus
   end
 
-  def move_wumpus
-    came_from = @config.nodes[@current_wumpus_node]['orientation'].index(@last_wumpus_node)
-    @last_wumpus_node = @current_wumpus_node
-    @current_wumpus_node = @config.nodes[@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
-    @wumpus_turn = -@wumpus_turn
-  end 
-
-  def seed_wumpus
-    # hack to make the wumpus far from where the player is now
-    @current_wumpus_node = (10 + @current_node) % 20
-    @last_wumpus_node = @current_wumpus_node ^ 1
-    @wumpus_turn ||= 1 # 1 or -1, indicating whether to turn left or right next
-    @wumpus_hp ||= 3
-  end
-
   def start
     loop do
-      move_wumpus if (@moves % 2) == 0
+      if wumpus_is_moving
+        move_wumpus 
+        kill_wumpus if @current_node == @current_wumpus_node
+      end
+      # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be done in sox.
+      # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in
       @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
-      @moves += 1
+      @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
       update_state
     end
   end  
@@ -112,11 +102,54 @@ class Wumpus
       raise 'unknown phreaking challenge'
     end
   end
+
+  def distance(source, target)
+    dist = 0
+    seen = []
+    fringe = [source]
+    loop do
+      return dist if fringe.include? target
+      seen += fringe
+      fringe = fringe.map(|node| @config.nodes[node]['orientation']).flatten.reject(|node| seen.include? node)
+      dist += 1
+    end
+  end
+
+  def move_wumpus
+    came_from = @config.nodes[@current_wumpus_node]['orientation'].index(@last_wumpus_node)
+    @last_wumpus_node = @current_wumpus_node
+    @current_wumpus_node = @config.nodes[@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
+    @wumpus_turn = -@wumpus_turn
+  end 
   
+  def wumpus_is_moving
+    return (@moves % 2) == 0
+  end
+
+  def seed_wumpus
+    # hack to make the wumpus far from where the player is now
+    @current_wumpus_node = (10 + @current_node) % 20
+    @last_wumpus_node = @current_wumpus_node ^ 1
+    @wumpus_turn ||= 1 # 1 or -1, indicating whether to turn left or right next
+    @wumpus_hp ||= 3
+  end
+
   # Called if the wumpus moves onto the current position
   def kill_wumpus
     @wumpus_hp -= 1
     @call.play File.join(Dir.pwd, 'wumpus', "death_#{3 - @wumpus_hp}")
+    seed_wumpus
   end
-  
+
+  def wumpus_noise
+    return [] if @wumpus_hp <= 0 # can't hear it if it's dead
+    apparent_last_wumpus_node = wumpus_is_moving ? @last_wumpus_node : @current_wumpus_node
+    noise = ['silence/1', 'silence/1']
+    d = distance(@current_node, apparent_last_wumpus_node)
+    noise[0] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
+    d = distance(@current_node, @current_wumpus_node)
+    noise[1] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
+    return noise
+  end
+
 end
