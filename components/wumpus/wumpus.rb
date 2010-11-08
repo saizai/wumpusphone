@@ -84,7 +84,7 @@ class Wumpus
   # a variant of interruptible_play, this also takes the extra four DTMF tones
   def interruptible_play_with_autovon(*files)
     files.flatten.each do |file|
-      result = result_digit_from response("STREAM FILE", file, "1234567890*#abcd")
+      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD")
       return result if result != 0.chr
     end
     nil
