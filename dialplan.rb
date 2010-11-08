@@ -1,4 +1,7 @@
 adhearsion {
+
+  puts result_digit_from response("STREAM FILE", 'en/demo-echodone', "1234567890*#abcd")
+
   wumpus
   
   # sleep(2)

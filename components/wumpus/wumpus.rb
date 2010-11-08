@@ -110,7 +110,7 @@ class Wumpus
     loop do
       return dist if fringe.include? target
       seen += fringe
-      fringe = fringe.map(|node| @config.nodes[node]['orientation']).flatten.reject(|node| seen.include? node)
+      fringe = fringe.map{|node| @config.nodes[node]['orientation']}.flatten.reject{|node| seen.include? node}
       dist += 1
     end
   end
