@@ -19,6 +19,15 @@ methods_for :dialplan do
   def wumpus
     Wumpus.new(self).start
   end
+
+  # a variant of interruptible_play, this also takes the extra four DTMF tones and the coin tone
+  def interruptible_play_with_autovon(*files)
+    files.flatten.each do |file|
+      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD$")
+      return result if result != 0.chr
+    end
+    nil
+  end
 end
 
 class Wumpus
@@ -29,7 +38,7 @@ class Wumpus
     @current_node = -1
     @moves = 0
 
-    @current_hold = rand(3)
+    @current_hold = 0 # rand(3) TEMPORARY
     
     seed_wumpus
   end
@@ -60,13 +69,13 @@ class Wumpus
   def update_state
     return false unless @choice
     unless current_node['options'][@choice]
-      @call.play File.join('Dir.pwd', 'invalid_option')
+      @call.play File.join(Dir.pwd, 'invalid_option')
       return false 
     end
     @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
     @current_node = current_node['options'][@choice]
     hold if @current_node == @current_wumpus_node
-    return true
+    true
   end
   
   def current_hold
@@ -78,37 +87,30 @@ class Wumpus
 
     intro = true
     key = nil
+    puts "hold #{@current_hold}" # debug
     while !phreaked?(key) do
-      puts "hold #{@current_hold}" # debug
       key = nil
       if intro
-        key ||= @call.interruptible_play_with_autovon File.join('Dir.pwd', 'holds', current_hold['name']) 
+        # FIXME: this aborts on keypress, so the music starts over; that's not really the correct behaviour for holds.
+        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'holds', current_hold['name']) 
         intro = false
+      else
+        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'holds', 'song_that_never_ends')
       end
-      key ||= @call.interruptible_play_with_autovon File.join('Dir.pwd', 'holds', 'song_that_never_ends')
     end
     
     # Successfully phreaked. Play the reward.
-    current_hold['clicks'].times { dtmf '*' }
-    dtmf current_hold['dtmf']
+    current_hold['clicks'].times { @call.dtmf '*' }
+    @call.dtmf current_hold['dtmf']
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
-  end
-  
-  # a variant of interruptible_play, this also takes the extra four DTMF tones and the coin tone
-  def interruptible_play_with_autovon(*files)
-    files.flatten.each do |file|
-      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD$")
-      return result if result != 0.chr
-    end
-    nil
   end
   
   def phreaked? key
     case current_hold['name']
     when 'caller_id':
-      @call.variables['callerid'] =~ /^1?684/ # extract area code
+      @call.callerid.to_s =~ /^1?684/ # extract area code
     when 'priority_override':
-      key =~ /(a|b|c|d)/
+      key =~ /(A|B|C|D)/
     when 'insert_coin':
       key =~ /\$/
     else
@@ -163,7 +165,7 @@ class Wumpus
     noise[0] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
     d = distance(@current_node, @current_wumpus_node)
     noise[1] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
-    return noise
+    noise
   end
 
 end
