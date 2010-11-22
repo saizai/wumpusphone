@@ -28,21 +28,24 @@ class Wumpus
     
     @current_node = -1
     @moves = 0
+
+    @current_hold = rand(3)
     
     seed_wumpus
   end
 
   def start
     loop do
-      if wumpus_is_moving
+      if @wumpus_hp > 0 and wumpus_is_moving
         move_wumpus 
         kill_wumpus if @current_node == @current_wumpus_node
       end
+      puts "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}" # debug
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be done in sox.
-      # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in
-      @choice = @call.input 1, :timeout => 10, :play => [wumpus_noise, current_menu].flatten
-      @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
-      update_state
+      # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
+      # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
+      @choice = nil
+      @choice = @call.input 1, :timeout => 20, :play => [wumpus_noise, current_menu].flatten until update_state
     end
   end  
   
@@ -55,19 +58,28 @@ class Wumpus
   end
   
   def update_state
+    return false unless @choice
+    unless current_node['options'][@choice]
+      @call.play File.join('Dir.pwd', 'invalid_option')
+      return false 
+    end
+    @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
     @current_node = current_node['options'][@choice]
     hold if @current_node == @current_wumpus_node
-    
+    return true
   end
   
   def current_hold
-    @config['holds'][rand(3)]
+    @config['holds'][@current_hold]
   end
   
   def hold
+    return unless @wumpus_hp > 0
+
     intro = true
     key = nil
-    while !phreaked(key) do
+    while !phreaked?(key) do
+      puts "hold #{@current_hold}" # debug
       key = nil
       if intro
         key ||= @call.interruptible_play_with_autovon File.join('Dir.pwd', 'holds', current_hold['name']) 
@@ -79,12 +91,13 @@ class Wumpus
     # Successfully phreaked. Play the reward.
     current_hold['clicks'].times { dtmf '*' }
     dtmf current_hold['dtmf']
+    @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
   end
   
-  # a variant of interruptible_play, this also takes the extra four DTMF tones
+  # a variant of interruptible_play, this also takes the extra four DTMF tones and the coin tone
   def interruptible_play_with_autovon(*files)
     files.flatten.each do |file|
-      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD")
+      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD$")
       return result if result != 0.chr
     end
     nil
@@ -97,7 +110,7 @@ class Wumpus
     when 'priority_override':
       key =~ /(a|b|c|d)/
     when 'insert_coin':
-      key =~ /\$/ # TODO: get Asterisk to recognize coins and output them as keys 
+      key =~ /\$/
     else
       raise 'unknown phreaking challenge'
     end
@@ -108,17 +121,18 @@ class Wumpus
     seen = []
     fringe = [source]
     loop do
+      return 1.0/0 if fringe.empty? # unconnected points are at distance +infinity
       return dist if fringe.include? target
       seen += fringe
-      fringe = fringe.map{|node| @config.nodes[node]['orientation']}.flatten.reject{|node| seen.include? node}
+      fringe = fringe.map{|node| @config['nodes'][node]['orientation'] || []}.flatten.reject{|node| seen.include? node}
       dist += 1
     end
   end
 
   def move_wumpus
-    came_from = @config.nodes[@current_wumpus_node]['orientation'].index(@last_wumpus_node)
+    came_from = @config['nodes'][@current_wumpus_node]['orientation'].index(@last_wumpus_node)
     @last_wumpus_node = @current_wumpus_node
-    @current_wumpus_node = @config.nodes[@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
+    @current_wumpus_node = @config['nodes'][@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
     @wumpus_turn = -@wumpus_turn
   end 
   
