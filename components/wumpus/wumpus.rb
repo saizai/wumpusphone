@@ -38,17 +38,14 @@ class Wumpus
     @current_node = -1
     @moves = 0
 
-    @current_hold = 0 # rand(3) TEMPORARY
+    @current_hold = rand(3)
     
     seed_wumpus
   end
 
   def start
     loop do
-      if @wumpus_hp > 0 and wumpus_is_moving
-        move_wumpus 
-        kill_wumpus if @current_node == @current_wumpus_node
-      end
+      update_wumpus_state
       puts "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}" # debug
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be done in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
@@ -72,7 +69,6 @@ class Wumpus
       @call.play File.join(Dir.pwd, 'invalid_option')
       return false 
     end
-    @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
     @current_node = current_node['options'][@choice]
     hold if @current_node == @current_wumpus_node
     true
@@ -103,6 +99,9 @@ class Wumpus
     current_hold['clicks'].times { @call.dtmf '*' }
     @call.dtmf current_hold['dtmf']
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
+
+    # After phreaking you don't want to be right on top of the wumpus again; move him along some.
+    5.times { update_wumpus_state }
   end
   
   def phreaked? key
@@ -129,6 +128,14 @@ class Wumpus
       fringe = fringe.map{|node| @config['nodes'][node]['orientation'] || []}.flatten.reject{|node| seen.include? node}
       dist += 1
     end
+  end
+
+  def update_wumpus_state
+    if @wumpus_hp > 0 and wumpus_is_moving
+      move_wumpus 
+      kill_wumpus if @current_node == @current_wumpus_node
+    end
+    @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
   end
 
   def move_wumpus
