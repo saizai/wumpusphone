@@ -6,12 +6,16 @@ methods_for :global do
     filename = File.join dir, hash + '.gsm'
     if !File.exist? filename
       temp_filename = File.join dir, hash + '.aiff'
-      system "say -o \"#{temp_filename}\" #{text}"
+      system "say -o \"#{temp_filename}\" #{text}" # OS X specific, of course
       system "sox \"#{temp_filename}\" -r 8000 -c 1 \"#{filename}\" resample -ql "
       File.delete temp_filename
     end
 
     play File.join(dir, hash)
+  end
+
+  def ahn_log_with_header text
+    ahn_log "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{(@call||self.call).uniqueid}\t#{text}"
   end
 end
 
@@ -21,9 +25,10 @@ methods_for :dialplan do
   end
 
   # a variant of interruptible_play, this also takes the extra four DTMF tones and the coin tone
-  def interruptible_play_with_autovon(*files)
-    files.flatten.each do |file|
-      result = result_digit_from response("STREAM FILE", file, "1234567890*#ABCD$")
+  def interruptible_play_with_autovon(*args)
+    options = args.last.kind_of?(Hash) ? args.pop : {}
+    args.flatten.each do |file|
+      result = result_digit_from response("STREAM FILE", file, options[:digits] || "1234567890*#ABCD$")
       return result if result != 0.chr
     end
     nil
@@ -37,6 +42,7 @@ class Wumpus
     
     @current_node = -1
     @moves = 0
+    @timeouts_left = 3
 
     @current_hold = rand(3)
     
@@ -44,14 +50,15 @@ class Wumpus
   end
 
   def start
+    ahn_log_with_header 'CALL RECEIVED'
     loop do
       update_wumpus_state
-      puts "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}" # debug
-      # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be done in sox.
+      ahn_log_with_header "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}"
+      # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
       @choice = nil
-      @choice = @call.input 1, :timeout => 20, :play => [wumpus_noise, current_menu].flatten until update_state
+      @choice = @call.input 1, :timeout => 15, :play => [wumpus_noise, current_menu].flatten until update_state
     end
   end  
   
@@ -60,17 +67,32 @@ class Wumpus
   end
   
   def current_menu
-    File.join(Dir.pwd, 'menus', current_node['name'])
+    File.join(Dir.pwd, 'audio', 'nodes', @current_node.to_s)
   end
   
+  def timeout
+    @call.play File.join(Dir.pwd, 'audio', 'errors', 'fatal_timeout')
+    @call.hangup
+  end
+
   def update_state
     return false unless @choice
+    if @choice == '' # we've timed out
+      @timeouts_left -= 1
+      if @timeouts_left <= 0
+        timeout
+      else
+        @call.play File.join(Dir.pwd, 'audio', 'errors', 'timeout')
+        return false
+      end
+    end
     unless current_node['options'][@choice]
-      @call.play File.join(Dir.pwd, 'invalid_option')
+      @call.play File.join(Dir.pwd, 'audio', 'errors', 'no_such_extension')
       return false 
     end
     @current_node = current_node['options'][@choice]
     hold if @current_node == @current_wumpus_node
+    @timeouts_left = 3
     true
   end
   
@@ -83,17 +105,21 @@ class Wumpus
 
     intro = true
     key = nil
-    puts "hold #{@current_hold}" # debug
+    verses_left = 15 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
+    ahn_log_with_header "hold #{current_hold['name']}"
     while !phreaked?(key) do
       key = nil
       if intro
-        # FIXME: this aborts on keypress, so the music starts over; that's not really the correct behaviour for holds.
-        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'holds', current_hold['name']) 
+        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', current_hold['name']), :digits => current_hold['escape_digits'] 
         intro = false
       else
-        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'holds', 'song_that_never_ends')
+        timeout if verses_left <= 0
+        verses_left -= 1
+        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', 'music'), :digits => current_hold['escape_digits']
       end
     end
+    
+    @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') if current_hold['name'] == 'caller_id'
     
     # Successfully phreaked. Play the reward.
     current_hold['clicks'].times { @call.dtmf '*' }
@@ -107,7 +133,7 @@ class Wumpus
   def phreaked? key
     case current_hold['name']
     when 'caller_id':
-      @call.callerid.to_s =~ /^1?684/ # extract area code
+      @call.callerid.to_s =~ /^\+?1?684/ # extract area code
     when 'priority_override':
       key =~ /(A|B|C|D)/
     when 'insert_coin':

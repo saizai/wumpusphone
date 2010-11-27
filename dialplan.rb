@@ -1,3 +1,7 @@
+default { 
+  wumpus
+}
+
 adhearsion {
   wumpus
   
