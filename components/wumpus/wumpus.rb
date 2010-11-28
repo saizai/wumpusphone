@@ -56,6 +56,7 @@ class Wumpus
   def start
     ahn_log_with_header 'CALL RECEIVED'
     ahn_log_with_header @call.inspect
+    choice = nil
     loop do
       ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
