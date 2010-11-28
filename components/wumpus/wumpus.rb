@@ -114,18 +114,13 @@ class Wumpus
     intro = true
     key = nil
     verses_left = 5 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
-    ahn_log_with_header "hold #{current_hold['name']}"
+    ahn_log_with_header "hold #{verses_left} #{current_hold['name']}, CID #{@call.callerid}"
     while !phreaked?(key) do
+      key = @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', (intro ? current_hold['name'] : 'music'), :digits => current_hold['escape_digits']
       ahn_log_with_header "hold #{verses_left} input: #{key}"
-      key = nil
-      if intro
-        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', current_hold['name']), :digits => current_hold['escape_digits'] 
-        intro = false
-      else
-        timeout(:fatal) if verses_left <= 0
-        verses_left -= 1
-        key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', 'music'), :digits => current_hold['escape_digits']
-      end
+      verses_left -= 1
+      timeout(:fatal) if verses_left <= 0
+      intro = false
     end
     
     if current_hold['name'] == 'caller_id'
@@ -154,7 +149,7 @@ class Wumpus
       raise 'unknown phreaking challenge'
     end
   end
-
+  
   def distance(source, target)
     dist = 0
     seen = []
@@ -184,7 +179,7 @@ class Wumpus
   end 
   
   def wumpus_is_moving
-    return (@moves % 2) == 0
+    (@moves % 2) == 0
   end
 
   def seed_wumpus
@@ -207,9 +202,9 @@ class Wumpus
     apparent_last_wumpus_node = wumpus_is_moving ? @last_wumpus_node : @current_wumpus_node
     noise = ['silence/1', 'silence/1']
     d = distance(@current_node, apparent_last_wumpus_node)
-    noise[0] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
+    noise[0] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand 6}_#{d}") if d <= 2
     d = distance(@current_node, @current_wumpus_node)
-    noise[1] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{d}") if d <= 2
+    noise[1] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand 6}_#{d}") if d <= 2
     noise
   end
 
