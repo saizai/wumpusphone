@@ -110,7 +110,7 @@ class Wumpus
 
     intro = true
     key = nil
-    verses_left = 15 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
+    verses_left = 5 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
     ahn_log_with_header "hold #{current_hold['name']}"
     while !phreaked?(key) do
       key = nil
