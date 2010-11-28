@@ -113,9 +113,8 @@ class Wumpus
 
     intro = true
     key = nil
-    verses_left = 15 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
+    verses_left = 5 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
     ahn_log_with_header "hold #{verses_left} #{current_hold['name']}, CID #{@call.callerid}"
-    
     while !phreaked?(key) do
       key = @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', (intro ? current_hold['name'] : 'music'), :digits => current_hold['escape_digits']
       ahn_log_with_header "hold #{verses_left} input: #{key}"
