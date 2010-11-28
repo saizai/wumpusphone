@@ -58,6 +58,7 @@ class Wumpus
     ahn_log_with_header @call.inspect
     choice = nil
     loop do
+      update_wumpus_state
       ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
@@ -69,7 +70,6 @@ class Wumpus
       
       @current_node = current_node['options'][choice]
       hold if @current_node == @current_wumpus_node
-      update_wumpus_state
     end
   end  
   
@@ -116,7 +116,7 @@ class Wumpus
     verses_left = 5 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
     ahn_log_with_header "hold #{verses_left} #{current_hold['name']}, CID #{@call.callerid}"
     while !phreaked?(key) do
-      key = @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', (intro ? current_hold['name'] : 'music'), :digits => current_hold['escape_digits']
+      key = @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', (intro ? current_hold['name'] : 'music')), :digits => current_hold['escape_digits']
       ahn_log_with_header "hold #{verses_left} input: #{key}"
       verses_left -= 1
       timeout(:fatal) if verses_left <= 0
@@ -168,7 +168,7 @@ class Wumpus
       move_wumpus 
       kill_wumpus if @current_node == @current_wumpus_node
     end
-    @moves += 1 # this must not come between wumpus move and player move, for wumpus_noise to be correct
+    @moves += 1 # coming between wumpus move and player move, as this does, wumpus_noise needs to test for the other parity
   end
 
   def move_wumpus
@@ -177,9 +177,13 @@ class Wumpus
     @current_wumpus_node = @config['nodes'][@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
     @wumpus_turn = -@wumpus_turn
   end 
-  
+
   def wumpus_is_moving
     (@moves % 2) == 0
+  end
+
+  def wumpus_has_moved
+    (@moves % 2) == 1
   end
 
   def seed_wumpus
@@ -192,19 +196,18 @@ class Wumpus
 
   # Called if the wumpus moves onto the current position
   def kill_wumpus
+    @call.play File.join(Dir.pwd, 'audio', 'wumpus', "death_#{3 - @wumpus_hp}")
     @wumpus_hp -= 1
-    @call.play File.join(Dir.pwd, 'wumpus', "death_#{3 - @wumpus_hp}")
     seed_wumpus
   end
 
   def wumpus_noise
     return [] if @wumpus_hp <= 0 # can't hear it if it's dead
-    apparent_last_wumpus_node = wumpus_is_moving ? @last_wumpus_node : @current_wumpus_node
     noise = ['silence/1', 'silence/1']
-    d = distance(@current_node, apparent_last_wumpus_node)
-    noise[0] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand 6}_#{d}") if d <= 2
+    d = distance(@current_node, @last_wumpus_node)
+    noise[0] = File.join(Dir.pwd, 'audio', 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand @config['num_crosstalks'][@wumpus_hp]}_#{d}") if d <= 2 and wumpus_has_moved
     d = distance(@current_node, @current_wumpus_node)
-    noise[1] = File.join(Dir.pwd, 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand 6}_#{d}") if d <= 2
+    noise[1] = File.join(Dir.pwd, 'audio', 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand @config['num_crosstalks'][@wumpus_hp]}_#{d}") if d <= 2
     noise
   end
 

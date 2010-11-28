@@ -1,17 +1,19 @@
 # You can use this file for component-specific configuration.
 holds:
   0:
-    name: caller_id
+    name: 'caller_id'
     escape_digits: ''
     dtmf: '*97806'
   1:
-    name: priority_override
+    name: 'priority_override'
     escape_digits: 'ABCD'
     dtmf: '**7978'
   2:
-    name: insert_coin
+    name: 'insert_coin'
     escape_digits: '$'
     dtmf: '***1295'
+
+num_crosstalks: {3: 7, 2: 6, 1: 6}
 
 nodes:
   -1: 
