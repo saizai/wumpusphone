@@ -58,7 +58,7 @@ class Wumpus
     ahn_log_with_header self.call.inspect
     loop do
       update_wumpus_state
-      ahn_log_with_header "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}"
+      ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
@@ -77,6 +77,7 @@ class Wumpus
   
   def timeout
     @call.play File.join(Dir.pwd, 'audio', 'errors', 'fatal_timeout')
+    ahn_log_with_header "timeout - hanging up"
     @call.hangup
   end
 
@@ -111,8 +112,9 @@ class Wumpus
     intro = true
     key = nil
     verses_left = 15 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
-    ahn_log_with_header "hold #{current_hold['name']}"
+    ahn_log_with_header "hold #{verses_left} #{current_hold['name']}"
     while !phreaked?(key) do
+      ahn_log_with_header "hold #{verses_left} input: #{key}"
       key = nil
       if intro
         key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', current_hold['name']), :digits => current_hold['escape_digits'] 
@@ -124,13 +126,16 @@ class Wumpus
       end
     end
     
-    @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') if current_hold['name'] == 'caller_id'
+    if current_hold['name'] == 'caller_id'
+      ahn_log_with_header "caller ID OK"
+      @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') 
+    end
     
     # Successfully phreaked. Play the reward.
-    current_hold['clicks'].times { @call.dtmf '*' }
     @call.dtmf current_hold['dtmf']
+    ahn_log_with_header "phreaked: #{current_hold['dtmf']}"
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
-
+    
     # After phreaking you don't want to be right on top of the wumpus again; move him along some.
     5.times { update_wumpus_state }
   end

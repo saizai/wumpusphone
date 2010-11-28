@@ -3,18 +3,15 @@ holds:
   0:
     name: caller_id
     escape_digits: ''
-    clicks: 1
-    dtmf: '97806'
+    dtmf: '*97806'
   1:
     name: priority_override
     escape_digits: 'ABCD'
-    clicks: 2
-    dtmf: '7978'
+    dtmf: '**7978'
   2:
     name: insert_coin
     escape_digits: '$'
-    clicks: 3
-    dtmf: '1295'
+    dtmf: '***1295'
 
 nodes:
   -1: 
