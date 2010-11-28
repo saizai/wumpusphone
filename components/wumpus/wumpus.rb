@@ -13,6 +13,10 @@ methods_for :global do
 
     play File.join(dir, hash)
   end
+  
+  def prefix
+    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{(@call || self.call).uniqueid}"
+  end
 end
 
 methods_for :dialplan do

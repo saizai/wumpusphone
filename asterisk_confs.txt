@@ -1,0 +1,17 @@
+# append to sip.conf
+
+[cwu_username]
+type=friend
+host=sip.callwithus.com
+username=cwu_username
+secret=cwu_password
+qualify=no
+insecure=invite
+
+
+# append to extensions.conf
+# also comment out the default [default] and its include line
+# should maybe be _X. not _., but the incoming extension is [s].
+
+[default]
+exten => _.,1,AGI(agi://127.0.0.1)

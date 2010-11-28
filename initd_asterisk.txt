@@ -1,0 +1,10 @@
+# This service maintains Asterisk from the point the system is 
+ # started until it is shut down again. 
+
+ description     "Asterisk daemon" 
+
+ start on runlevel-2 
+ stop on shutdown 
+
+ respawn 
+ exec //usr/sbin/asterisk -f
