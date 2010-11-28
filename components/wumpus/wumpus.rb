@@ -58,11 +58,10 @@ class Wumpus
     ahn_log_with_header @call.inspect
     loop do
       update_wumpus_state
-      ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
+      ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{@choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
-      @choice = nil
       @choice = @call.input 1, :timeout => 15, :play => [wumpus_noise, current_menu].flatten until update_state
     end
   end  
