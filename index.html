@@ -1,100 +1,99 @@
 <html>
-<meta>
-<script src="http://code.jquery.com/jquery-1.4.2.min.js"></script> 
-<script src="http://s.phono.com/releases/0.1/jquery.phono.js"></script>
-<title>Metaphysical Plant Unlimited Services</title>
-</meta>
-<body>
-<p>We here at Metaphysical Plant Unlimited Services (MPUS) strive to provide you with the best possible service, every day.</p>
-<p>That's why we only provide service by phone. Please dial one of:
-<ul>
-<li>1 201 793 1049</li>
-<li>1 702 965 1892</li>
-<li><a href="sip:mpus@173.203.111.52">sip:mpus@173.203.111.52</a></li></p>
-
-<p>You could also use this handy widget!</p>
-
-<input id="call" type="button" disabled="true" value="Loading..." />
-<span id="status"></span>
-<div class="callInputs" style="display: none;">
-	<input type="button" class="btn hangup" value="Hangup"/>
-	<input type="button" class="btn mute" value="Mute"/>            
-	<input type="button" class="btn unMute" value="Unmute">
-	<br/>
-	<input type="button" class="btn digit" value="1"/>
-	<input type="button" class="btn digit" value="2"/>
-	<input type="button" class="btn digit" value="3"/>
-	<input type="button" class="btn digit" value="4"/>
-	<input type="button" class="btn digit" value="5"/>
-	<input type="button" class="btn digit" value="6"/>
-	<input type="button" class="btn digit" value="7"/>
-	<input type="button" class="btn digit" value="8"/>
-	<input type="button" class="btn digit" value="9"/>
-	<input type="button" class="btn digit" value="0"/>
-	<input type="button" class="btn digit" value="*"/>
-	<input type="button" class="btn digit" value="#"/>
-</div>
-
-<script>
-$(document).ready(function(){
-  var call = null;
-  var phono = $.phono({
-	apiKey: "2af597ad824e82d4ac4201ea704ab8da",
-    onReady: function() {
-      $("#call").attr("disabled", false).val("Call");
-    },
-	phone: {
-		tones: true,
-		ringbackTone: "http://s.phono.com/ringtones/ringback-us.mp3"
-	},
-  });
-
-  $("#call").click(function() {
-    $("#call").attr("disabled", true).val("Busy");
-    call = phono.phone.dial("sip:mpus@173.203.111.52", {
-		pushToTalk: false,
-		mute: false,
-		volume: 100,
-		onError: function() {
-			$("#status").html("Call error");
-		},
-      onRing: function() {
-        $("#status").html("Ringing");
-		$(".callInputs").show();
-      },
-      onAnswer: function() {
-        $("#status").html("Answered");
-      },
-      onHangup: function() {
-		$(".callInputs").hide();
-        $("#call").attr("disabled", false).val("Call");
-        $("#status").html("Hangup");
-		call = null;
-      }
-    });
-  });
-	
-	$('.digit').click(function() {
-		var digit = $(this).attr("value");
-		call.digit(digit);
-		$("#status").html(digit);
-	});
-	$('.hangup').click(function() {
-		call.hangup();
-	});
-	$('.mute').click(function() {
-		call.mute(true);
-		$("#status").html("Muted");
-	});
-	$('.unMute').click(function() {
-		call.mute(false);
-		$("#status").html("Unmuted");
-	});
-	
-})
-</script>
-
-
-</body>
+	<meta>
+		<script src="http://code.jquery.com/jquery-1.4.2.min.js"></script> 
+		<script src="http://s.phono.com/releases/0.1/jquery.phono.js"></script>
+		<title>Metaphysical Plant Unlimited Services</title>
+	</meta>
+	<body>
+		<p>We here at Metaphysical Plant Unlimited Services (MPUS) are obliged to provide you with the best possible service, every day.</p>
+		<p>That's why we only provide service by phone. Please dial one of:
+			<ul>
+				<li>+1 (201) 793-1049</li>
+				<li>+1 (702) 965-1892</li>
+				<li><a href="sip:mpus@173.203.111.52">sip:mpus@173.203.111.52</a></li>
+			</ul>
+		</p>
+		<p>You could also use this handy widget!</p>
+		
+		<input id="call" type="button" disabled="true" value="Loading..." />
+		<span id="status"></span>
+		<div class="callInputs" style="display: none;">
+			<input type="button" class="btn hangup" value="Hangup"/>
+			<input type="button" class="btn mute" value="Mute"/>            
+			<input type="button" class="btn unMute" value="Unmute">
+			<br/>
+			<input type="button" class="btn digit" value="1"/>
+			<input type="button" class="btn digit" value="2"/>
+			<input type="button" class="btn digit" value="3"/>
+			<input type="button" class="btn digit" value="4"/>
+			<input type="button" class="btn digit" value="5"/>
+			<input type="button" class="btn digit" value="6"/>
+			<input type="button" class="btn digit" value="7"/>
+			<input type="button" class="btn digit" value="8"/>
+			<input type="button" class="btn digit" value="9"/>
+			<input type="button" class="btn digit" value="0"/>
+			<input type="button" class="btn digit" value="*"/>
+			<input type="button" class="btn digit" value="#"/>
+		</div>
+		<script>
+			$(document).ready(function(){
+				var call = null;
+				var phono = $.phono({
+					apiKey: "2af597ad824e82d4ac4201ea704ab8da",
+					onReady: function() {
+						$("#call").attr("disabled", false).val("Call");
+					},
+					phone: {
+						tones: true,
+						ringbackTone: "http://s.phono.com/ringtones/ringback-us.mp3"
+					},
+				});
+				
+				$("#call").click(function() {
+					$("#call").attr("disabled", true).val("Busy");
+					call = phono.phone.dial("sip:mpus@173.203.111.52", {
+						pushToTalk: false,
+						mute: false,
+						volume: 100,
+						onError: function() {
+							$("#status").html("Call error");
+						},
+						onRing: function() {
+							$(".callInputs").show();
+							$("#status").html("Ringing");
+						},
+						onAnswer: function() {
+							$(".callInputs").show();
+							$("#status").html("Answered");
+						},
+						onHangup: function() {
+							$(".callInputs").hide();
+							$("#call").attr("disabled", false).val("Call");
+							$("#status").html("Hangup");
+							call = null;
+						}
+					});
+				});
+		
+				$('.digit').click(function() {
+					var digit = $(this).attr("value");
+					call.digit(digit);
+					$("#status").html(digit);
+				});
+				$('.hangup').click(function() {
+					call.hangup();
+				});
+				$('.mute').click(function() {
+					call.mute(true);
+					$("#status").html("Muted");
+				});
+				$('.unMute').click(function() {
+					call.mute(false);
+					$("#status").html("Unmuted");
+				});
+				
+			})
+		</script>
+	</body>
 </html>
 

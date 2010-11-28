@@ -55,15 +55,21 @@ class Wumpus
 
   def start
     ahn_log_with_header 'CALL RECEIVED'
-    ahn_log_with_header self.call.inspect
+    ahn_log_with_header @call.inspect
+    choice = nil
     loop do
-      update_wumpus_state
-      ahn_log_with_header "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}"
+      ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
-      @choice = nil
-      @choice = @call.input 1, :timeout => 15, :play => [wumpus_noise, current_menu].flatten until update_state
+      choice = @call.input 1, :timeout => 15, :play => [wumpus_noise, current_menu].flatten 
+      timeout and redo if choice.nil? or choice == '' # we've timed out
+      timeout(:extension) and redo if !current_node['options'][choice]
+      reset_timeout!
+      
+      @current_node = current_node['options'][choice]
+      hold if @current_node == @current_wumpus_node
+      update_wumpus_state
     end
   end  
   
@@ -75,30 +81,27 @@ class Wumpus
     File.join(Dir.pwd, 'audio', 'nodes', @current_node.to_s)
   end
   
-  def timeout
-    @call.play File.join(Dir.pwd, 'audio', 'errors', 'fatal_timeout')
-    @call.hangup
+  def no_extension
+    @call.play File.join(Dir.pwd, 'audio', 'errors', 'no_such_extension')
   end
-
-  def update_state
-    return false unless @choice
-    if @choice == '' # we've timed out
-      @timeouts_left -= 1
-      if @timeouts_left <= 0
-        timeout
-      else
-        @call.play File.join(Dir.pwd, 'audio', 'errors', 'timeout')
-        return false
-      end
-    end
-    unless current_node['options'][@choice]
-      @call.play File.join(Dir.pwd, 'audio', 'errors', 'no_such_extension')
-      return false 
-    end
-    @current_node = current_node['options'][@choice]
-    hold if @current_node == @current_wumpus_node
+  
+  def reset_timeout!
     @timeouts_left = 3
-    true
+  end
+  
+  def timeout type = :timeout
+    @timeouts_left -= 1
+    if @timeouts_left <= 0 or type == :fatal
+      @call.play File.join(Dir.pwd, 'audio', 'errors', 'fatal_timeout')
+      ahn_log_with_header "timeout - hanging up"
+      @call.hangup
+    elsif type == :extension
+      ahn_log_with_header "failed extension"
+      @call.play File.join(Dir.pwd, 'audio', 'errors', 'no_such_extension')      
+    else
+      ahn_log_with_header "timeout"
+      @call.play File.join(Dir.pwd, 'audio', 'errors', 'timeout')
+    end
   end
   
   def current_hold
@@ -113,24 +116,28 @@ class Wumpus
     verses_left = 5 # TODO: adjust this according to the length of the eventual hold music.  (I'm lazy.)
     ahn_log_with_header "hold #{current_hold['name']}"
     while !phreaked?(key) do
+      ahn_log_with_header "hold #{verses_left} input: #{key}"
       key = nil
       if intro
         key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', current_hold['name']), :digits => current_hold['escape_digits'] 
         intro = false
       else
-        timeout if verses_left <= 0
+        timeout(:fatal) if verses_left <= 0
         verses_left -= 1
         key ||= @call.interruptible_play_with_autovon File.join(Dir.pwd, 'audio', 'holds', 'music'), :digits => current_hold['escape_digits']
       end
     end
     
-    @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') if current_hold['name'] == 'caller_id'
+    if current_hold['name'] == 'caller_id'
+      ahn_log_with_header "caller ID OK"
+      @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') 
+    end
     
     # Successfully phreaked. Play the reward.
-    current_hold['clicks'].times { @call.dtmf '*' }
     @call.dtmf current_hold['dtmf']
+    ahn_log_with_header "phreaked: #{current_hold['dtmf']}"
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
-
+    
     # After phreaking you don't want to be right on top of the wumpus again; move him along some.
     5.times { update_wumpus_state }
   end
