@@ -46,7 +46,7 @@ class Wumpus
     
     @current_node = -1
     @moves = 0
-    @timeouts_left = 3
+    reset_timeout!
 
     @current_hold = rand(3)
     
