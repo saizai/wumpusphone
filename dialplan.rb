@@ -1,8 +1,8 @@
 default {
   ahn_log "#{prefix} RECEIVED CALL"
   ahn_log "#{prefix} #{self.call.inspect}"
-  dtmf '147*2580369#abcd'
-  # wumpus
+  play 'en/spy-jingle'
+  wumpus
   hangup
   ahn_log "#{prefix} HUNG UP"
 }

@@ -16,7 +16,8 @@ methods_for :global do
   
   def prefix
     "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{(@call || self.call).uniqueid}"
-
+  end
+  
   def ahn_log_with_header text
     ahn_log "#{prefix}\t#{text}"
   end
