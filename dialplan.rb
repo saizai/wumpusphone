@@ -1,10 +1,7 @@
 default {
-  ahn_log "#{prefix} RECEIVED CALL"
-  ahn_log "#{prefix} #{self.call.inspect}"
-  play 'en/spy-jingle'
   wumpus
   hangup
-  ahn_log "#{prefix} HUNG UP"
+  ahn_log_with_header "HUNG UP"
 }
 
 adhearsion {

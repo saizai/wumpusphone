@@ -55,6 +55,7 @@ class Wumpus
 
   def start
     ahn_log_with_header 'CALL RECEIVED'
+    ahn_log_with_header self.call.inspect
     loop do
       update_wumpus_state
       ahn_log_with_header "you: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}"
