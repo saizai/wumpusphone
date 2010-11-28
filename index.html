@@ -59,10 +59,11 @@
 							$("#status").html("Call error");
 						},
 						onRing: function() {
-							$("#status").html("Ringing");
 							$(".callInputs").show();
+							$("#status").html("Ringing");
 						},
 						onAnswer: function() {
+							$(".callInputs").show();
 							$("#status").html("Answered");
 						},
 						onHangup: function() {
