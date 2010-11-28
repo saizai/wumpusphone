@@ -63,7 +63,7 @@ class Wumpus
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
       choice = @call.input 1, :timeout => 15, :play => [wumpus_noise, current_menu].flatten 
-      timeout and redo if choice.nil? or choice == '' # we've timed out
+      timeout and redo if choice == '' # we've timed out
       timeout(:extension) and redo if !current_node['options'][choice]
       reset_timeout!
       
@@ -93,7 +93,7 @@ class Wumpus
     @timeouts_left -= 1
     if @timeouts_left <= 0 or type == :fatal
       @call.play File.join(Dir.pwd, 'audio', 'errors', 'fatal_timeout')
-      ahn_log_with_header "timeout - hanging up"
+      ahn_log_with_header "timeout -- hanging up"
       @call.hangup
     elsif type == :extension
       ahn_log_with_header "failed extension"
