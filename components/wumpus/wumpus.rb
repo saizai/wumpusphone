@@ -57,12 +57,14 @@ class Wumpus
     ahn_log_with_header 'CALL RECEIVED'
     ahn_log_with_header @call.inspect
     choice = nil
+    once = true
     loop do
       ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
       # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
       # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
-      choice = @call.input 1, :timeout => 15, :play => current_menu 
+      choice = @call.input 1, :timeout => 15, :play => once ? wumpus_noise : current_menu 
+      once = false
       timeout and redo if choice == '' # we've timed out
       timeout(:extension) and redo if !current_node['options'][choice]
       reset_timeout!
@@ -70,7 +72,7 @@ class Wumpus
       @current_node = current_node['options'][choice]
       hold if @current_node == @current_wumpus_node
       update_wumpus_state
-      @call.play wumpus_noise # simple way to make wumpus play before the menu. For intermixed version we'll need a play-once flag.
+      once = true
     end
   end  
   
@@ -205,12 +207,15 @@ class Wumpus
 
   def wumpus_noise
     return [] if @wumpus_hp <= 0 # can't hear it if it's dead
-    noise = ['silence/1', 'silence/1']
-    d = distance(@current_node, @last_wumpus_node)
-    noise[0] = File.join(Dir.pwd, 'audio', 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand @config['num_crosstalks'][@wumpus_hp]}_#{d}") if d <= 2 and wumpus_has_moved
-    d = distance(@current_node, @current_wumpus_node)
-    noise[1] = File.join(Dir.pwd, 'audio', 'wumpus', "crosstalk_#{3 - @wumpus_hp}_#{rand @config['num_crosstalks'][@wumpus_hp]}_#{d}") if d <= 2
-    noise
+    oldd = 3 - distance(@current_node, wumpus_has_moved ? @last_wumpus_node : @current_wumpus_node)
+    oldd = 0 if oldd < 0
+    newd = 3 - distance(@current_node, @current_wumpus_node)
+    newd = 0 if newd < 0
+    if oldd == 0 and newd == 0
+      current_menu
+    else
+      File.join(Dir.pwd, 'audio', 'nodes', "#{@current_node}_crosstalk_#{3 - @wumpus_hp}v#{oldd}#{newd}")      
+    end
   end
 
 end
