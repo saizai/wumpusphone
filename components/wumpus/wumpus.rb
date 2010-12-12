@@ -48,7 +48,7 @@ class Wumpus
     @moves = 0
     reset_timeout!
 
-    @current_hold = rand(3)
+    @current_hold = 1 # TEMPORARY rand(3)
     
     seed_wumpus
   end
@@ -144,10 +144,8 @@ class Wumpus
     case current_hold['name']
     when 'caller_id':
       @call.callerid.to_s =~ /^\+?1?684/ # extract area code
-    when 'priority_override':
-      key =~ /(A|B|C|D)/
-    when 'insert_coin':
-      key =~ /\$/
+    when 'priority_override', 'insert_coin':
+      key # we've already gotten the correct digit, if we're breaking interruptible_play
     else
       raise 'unknown phreaking challenge'
     end
