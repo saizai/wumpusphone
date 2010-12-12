@@ -1,0 +1,236 @@
+diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both/channels/chan_sip.c
+--- asterisk-1.8.0-coins/channels/chan_sip.c	2010-11-14 23:17:04.000000000 -0500
++++ asterisk-1.8.0-dtmfmode_both/channels/chan_sip.c	2010-12-12 13:18:27.000000000 -0500
+@@ -206,6 +206,11 @@
+ 
+ */
+ 
++/*
++  This version has been kluged by Alex Fink to allow a new dtmfmode "both"
++  that recognises both rfc2833 and inband, and sends rfc2833.
++*/
++
+ #include "asterisk.h"
+ 
+ ASTERISK_FILE_VERSION(__FILE__, "$Revision: 291942 $")
+@@ -3960,12 +3965,17 @@
+ 	}
+ 
+ 	if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
+-            (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO)) {
++      (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO)) {
+ 		if (!p->rtp || ast_rtp_instance_dtmf_mode_set(p->rtp, AST_RTP_DTMF_MODE_INBAND)) {
+ 			features |= DSP_FEATURE_DIGIT_DETECT;
+-                }
++    }
++	} else if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH)) {
++		if (!p->rtp || ast_rtp_instance_dtmf_mode_set(p->rtp, AST_RTP_DTMF_MODE_BOTH)) {
++			features |= DSP_FEATURE_DIGIT_DETECT;
++    }
+ 	}
+ 
++
+ 	if (ast_test_flag(&p->flags[1], SIP_PAGE2_FAX_DETECT_CNG)) {
+ 		features |= DSP_FEATURE_FAX_DETECT;
+ 	}
+@@ -4010,7 +4020,8 @@
+ 		break;
+ 	case AST_OPTION_DIGIT_DETECT:
+ 		if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
+-		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO)) {
++		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO) ||
++		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH)) {
+ 			char *cp = (char *) data;
+ 
+ 			ast_debug(1, "%sabling digit detection on %s\n", *cp ? "En" : "Dis", chan->name);
+@@ -4799,7 +4810,7 @@
+ 	ast_rtp_instance_set_hold_timeout(dialog->rtp, global_rtpholdtimeout);
+ 
+ 	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_RTCP, 1);
+-	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF, ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833);
++	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF, (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) || (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_BOTH));
+ 	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&dialog->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
+ 
+ 	ast_rtp_instance_set_qos(dialog->rtp, global_tos_audio, global_cos_audio, "SIP RTP");
+@@ -4860,7 +4871,7 @@
+ 	}
+ 
+ 	if (dialog->rtp) { /* Audio */
+-		ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF, ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833);
++		ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF, (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833 || ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_BOTH));
+ 		ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&dialog->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
+ 		ast_rtp_instance_set_timeout(dialog->rtp, peer->rtptimeout);
+ 		ast_rtp_instance_set_hold_timeout(dialog->rtp, peer->rtpholdtimeout);
+@@ -4945,7 +4956,8 @@
+ 		dialog->timer_b = 64 * dialog->timer_t1;
+ 
+ 	if ((ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
+-	    (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_AUTO))
++	    (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_AUTO) ||
++	    (ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_BOTH))
+ 		dialog->noncodeccapability |= AST_RTP_DTMF;
+ 	else
+ 		dialog->noncodeccapability &= ~AST_RTP_DTMF;
+@@ -6178,6 +6190,7 @@
+ 		}
+ 		break;
+ 	case SIP_DTMF_RFC2833:
++  case SIP_DTMF_BOTH: // both sends rfc2833
+ 		if (p->rtp)
+ 			ast_rtp_instance_dtmf_begin(p->rtp, digit);
+ 		break;
+@@ -6203,6 +6216,7 @@
+ 		transmit_info_with_digit(p, digit, duration);
+ 		break;
+ 	case SIP_DTMF_RFC2833:
++  case SIP_DTMF_BOTH: // both sends rfc2833
+ 		if (p->rtp)
+ 			ast_rtp_instance_dtmf_end_with_duration(p->rtp, digit, duration);
+ 		break;
+@@ -6580,6 +6594,10 @@
+ 		if (i->rtp) {
+ 			ast_rtp_instance_dtmf_mode_set(i->rtp, AST_RTP_DTMF_MODE_RFC2833);
+ 		}
++	} else if (ast_test_flag(&i->flags[0], SIP_DTMF) == SIP_DTMF_BOTH) {
++		if (!i->rtp || ast_rtp_instance_dtmf_mode_set(i->rtp, AST_RTP_DTMF_MODE_BOTH)) {
++			enable_dsp_detect(i);
++		}
+ 	}
+ 
+ 	/* Set file descriptors for audio, video, realtime text and UDPTL as needed */
+@@ -6888,7 +6906,8 @@
+ 	}
+ 	/* Don't forward RFC2833 if we're not supposed to */
+ 	if (f && (f->frametype == AST_FRAME_DTMF_BEGIN || f->frametype == AST_FRAME_DTMF_END) &&
+-	    (ast_test_flag(&p->flags[0], SIP_DTMF) != SIP_DTMF_RFC2833)) {
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) != SIP_DTMF_RFC2833) &&
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) != SIP_DTMF_BOTH)) {
+ 		ast_debug(1, "Ignoring DTMF (%c) RTP frame because dtmfmode is not RFC2833\n", f->subclass.integer);
+ 		return &ast_null_frame;
+ 	}
+@@ -6917,7 +6936,8 @@
+ 				ast_debug(1, "Fax CNG detected on %s\n", ast->name);
+ 				*faxdetect = 1;
+ 				/* If we only needed this DSP for fax detection purposes we can just drop it now */
+-				if (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) {
++				if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
++            (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH)) {
+ 					ast_dsp_set_features(p->dsp, DSP_FEATURE_DIGIT_DETECT);
+ 				} else {
+ 					ast_dsp_free(p->dsp);
+@@ -7176,7 +7196,8 @@
+ 	p->capability = sip_cfg.capability;
+ 	p->allowtransfer = sip_cfg.allowtransfer;
+ 	if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
+-	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO))
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO) ||
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH))
+ 		p->noncodeccapability |= AST_RTP_DTMF;
+ 	if (p->udptl) {
+ 		p->t38_maxdatagram = global_t38_maxdatagram;
+@@ -14998,7 +15019,8 @@
+ 			p->jointcapability &= p->peercapability;
+ 		p->maxcallbitrate = peer->maxcallbitrate;
+ 		if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
+-		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO))
++		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO) ||
++		    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH))
+ 			p->noncodeccapability |= AST_RTP_DTMF;
+ 		else
+ 			p->noncodeccapability &= ~AST_RTP_DTMF;
+@@ -15796,6 +15818,7 @@
+ 	{ SIP_DTMF_SHORTINFO,   "shortinfo" },
+ 	{ SIP_DTMF_INBAND,      "inband" },
+ 	{ SIP_DTMF_AUTO,        "auto" },
++	{ SIP_DTMF_BOTH,        "both" },
+ 	{ -1,                   NULL }, /* terminator */
+ };
+ 
+@@ -21264,7 +21287,7 @@
+ 		build_contact(p);			/* Build our contact header */
+ 
+ 		if (p->rtp) {
+-			ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF, ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833);
++			ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF, (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) || (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH));
+ 			ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&p->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
+ 		}
+ 
+@@ -25227,8 +25250,10 @@
+ 			ast_set_flag(&flags[0], SIP_DTMF_SHORTINFO);
+ 		else if (!strcasecmp(v->value, "auto"))
+ 			ast_set_flag(&flags[0], SIP_DTMF_AUTO);
++		else if (!strcasecmp(v->value, "both"))
++			ast_set_flag(&flags[0], SIP_DTMF_BOTH);
+ 		else {
+-			ast_log(LOG_WARNING, "Unknown dtmf mode '%s' on line %d, using rfc2833\n", v->value, v->lineno);
++			ast_log(LOG_WARNING, "Unknown dtmf mode '%s' on line %d, using NOW THERE\'S DIFFERENT TEXT HERE rfc2833\n", v->value, v->lineno);
+ 			ast_set_flag(&flags[0], SIP_DTMF_RFC2833);
+ 		}
+ 	} else if (!strcasecmp(v->name, "nat")) {
+@@ -27645,13 +27670,18 @@
+ 		ast_clear_flag(&p->flags[0], SIP_DTMF);
+ 		ast_set_flag(&p->flags[0], SIP_DTMF_INBAND);
+ 		p->jointnoncodeccapability &= ~AST_RTP_DTMF;
++	} else if (!strcasecmp(mode, "both")) {
++		ast_clear_flag(&p->flags[0], SIP_DTMF);
++		ast_set_flag(&p->flags[0], SIP_DTMF_BOTH);
++		p->jointnoncodeccapability |= AST_RTP_DTMF;
+ 	} else {
+ 		ast_log(LOG_WARNING, "I don't know about this dtmf mode: %s\n", mode);
+ 	}
+ 	if (p->rtp)
+-		ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF, ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833);
++		ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF, (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) || (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH));
+ 	if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
+-	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO)) {
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_AUTO) ||
++	    (ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_BOTH)) {
+ 		enable_dsp_detect(p);
+ 	} else {
+ 		disable_dsp_detect(p);
+diff -Naur asterisk-1.8.0-coins/channels/sip/include/sip.h asterisk-1.8.0-dtmfmode_both/channels/sip/include/sip.h
+--- asterisk-1.8.0-coins/channels/sip/include/sip.h	2010-11-14 23:17:04.000000000 -0500
++++ asterisk-1.8.0-dtmfmode_both/channels/sip/include/sip.h	2010-12-11 17:56:18.000000000 -0500
+@@ -19,6 +19,11 @@
+  * \brief chan_sip header file
+  */
+ 
++/*
++  This version has been kluged by Alex Fink to allow a new dtmfmode "both"
++  that recognises both rfc2833 and inband.
++*/
++
+ #ifndef _SIP_H
+ #define _SIP_H
+ 
+@@ -254,6 +259,7 @@
+ #define SIP_DTMF_INFO       (2 << 15) /*!< DP: DTMF Support: SIP Info messages - "info" */
+ #define SIP_DTMF_AUTO       (3 << 15) /*!< DP: DTMF Support: AUTO switch between rfc2833 and in-band DTMF */
+ #define SIP_DTMF_SHORTINFO  (4 << 15) /*!< DP: DTMF Support: SIP Info messages - "info" - short variant */
++#define SIP_DTMF_BOTH       (5 << 15) /*!< DP: DTMF Support: like "rfc2833" and "inband" together */
+ 
+ /* NAT settings */
+ #define SIP_NAT_FORCE_RPORT     (1 << 18) /*!< DP: Force rport even if not present in the request */
+diff -Naur asterisk-1.8.0-coins/include/asterisk/rtp_engine.h asterisk-1.8.0-dtmfmode_both/include/asterisk/rtp_engine.h
+--- asterisk-1.8.0-coins/include/asterisk/rtp_engine.h	2010-11-14 23:17:29.000000000 -0500
++++ asterisk-1.8.0-dtmfmode_both/include/asterisk/rtp_engine.h	2010-12-11 18:12:51.000000000 -0500
+@@ -62,6 +62,10 @@
+  * available for the RTP engine.
+  */
+ 
++/*
++  This version kluged by Alex Fink to allow DTMF both ways at once.
++*/
++
+ #ifndef _ASTERISK_RTP_ENGINE_H
+ #define _ASTERISK_RTP_ENGINE_H
+ 
+@@ -119,6 +123,8 @@
+ 	AST_RTP_DTMF_MODE_RFC2833,
+ 	/*! DTMF is being carried inband over the RTP stream */
+ 	AST_RTP_DTMF_MODE_INBAND,
++	/*! both of the above, for incoming DTMF */
++	AST_RTP_DTMF_MODE_BOTH,
+ };
+ 
+ /*! Result codes when RTP glue is queried for information */
