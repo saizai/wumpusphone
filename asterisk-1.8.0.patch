@@ -1,19 +1,20 @@
-diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both/channels/chan_sip.c
---- asterisk-1.8.0-coins/channels/chan_sip.c	2010-11-14 23:17:04.000000000 -0500
-+++ asterisk-1.8.0-dtmfmode_both/channels/chan_sip.c	2010-12-12 13:18:27.000000000 -0500
-@@ -206,6 +206,11 @@
+diff -Naur asterisk-1.8.0/channels/chan_sip.c asterisk-1.8.0/channels/chan_sip.c
+--- asterisk-1.8.0/channels/chan_sip.c	2010-10-15 16:12:04.000000000 -0400
++++ asterisk-1.8.0/channels/chan_sip.c	2010-12-12 18:42:56.000000000 -0500
+@@ -206,6 +206,12 @@
  
  */
  
 +/*
 +  This version has been kluged by Alex Fink to allow a new dtmfmode "both"
-+  that recognises both rfc2833 and inband, and sends rfc2833.
++  that recognises both rfc2833 and inband, and sends inband ('cause we're 
++  sending for human consumption).
 +*/
 +
  #include "asterisk.h"
  
  ASTERISK_FILE_VERSION(__FILE__, "$Revision: 291942 $")
-@@ -3960,12 +3965,17 @@
+@@ -3960,12 +3966,17 @@
  	}
  
  	if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
@@ -33,7 +34,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  	if (ast_test_flag(&p->flags[1], SIP_PAGE2_FAX_DETECT_CNG)) {
  		features |= DSP_FEATURE_FAX_DETECT;
  	}
-@@ -4010,7 +4020,8 @@
+@@ -4010,7 +4021,8 @@
  		break;
  	case AST_OPTION_DIGIT_DETECT:
  		if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_INBAND) ||
@@ -43,7 +44,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  			char *cp = (char *) data;
  
  			ast_debug(1, "%sabling digit detection on %s\n", *cp ? "En" : "Dis", chan->name);
-@@ -4799,7 +4810,7 @@
+@@ -4799,7 +4811,7 @@
  	ast_rtp_instance_set_hold_timeout(dialog->rtp, global_rtpholdtimeout);
  
  	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_RTCP, 1);
@@ -52,7 +53,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  	ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&dialog->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
  
  	ast_rtp_instance_set_qos(dialog->rtp, global_tos_audio, global_cos_audio, "SIP RTP");
-@@ -4860,7 +4871,7 @@
+@@ -4860,7 +4872,7 @@
  	}
  
  	if (dialog->rtp) { /* Audio */
@@ -61,7 +62,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  		ast_rtp_instance_set_prop(dialog->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&dialog->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
  		ast_rtp_instance_set_timeout(dialog->rtp, peer->rtptimeout);
  		ast_rtp_instance_set_hold_timeout(dialog->rtp, peer->rtpholdtimeout);
-@@ -4945,7 +4956,8 @@
+@@ -4945,7 +4957,8 @@
  		dialog->timer_b = 64 * dialog->timer_t1;
  
  	if ((ast_test_flag(&dialog->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
@@ -71,23 +72,35 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  		dialog->noncodeccapability |= AST_RTP_DTMF;
  	else
  		dialog->noncodeccapability &= ~AST_RTP_DTMF;
-@@ -6178,6 +6190,7 @@
+@@ -6177,6 +6190,13 @@
+ 			res = -1; /* Tell Asterisk to generate inband indications */
  		}
  		break;
++  case SIP_DTMF_BOTH: // both sends inband, so people hear it
++		if (p->rtp && ast_rtp_instance_dtmf_mode_get(p->rtp) == AST_RTP_DTMF_MODE_BOTH) {
++			ast_rtp_instance_dtmf_begin(p->rtp, digit);
++		} else {
++			res = -1; /* Tell Asterisk to generate inband indications */
++		}
++		break;
  	case SIP_DTMF_RFC2833:
-+  case SIP_DTMF_BOTH: // both sends rfc2833
  		if (p->rtp)
  			ast_rtp_instance_dtmf_begin(p->rtp, digit);
+@@ -6213,6 +6233,13 @@
+ 			res = -1; /* Tell Asterisk to stop inband indications */
+ 		}
  		break;
-@@ -6203,6 +6216,7 @@
- 		transmit_info_with_digit(p, digit, duration);
- 		break;
- 	case SIP_DTMF_RFC2833:
-+  case SIP_DTMF_BOTH: // both sends rfc2833
- 		if (p->rtp)
- 			ast_rtp_instance_dtmf_end_with_duration(p->rtp, digit, duration);
- 		break;
-@@ -6580,6 +6594,10 @@
++  case SIP_DTMF_BOTH: // both sends inband, so people hear it
++		if (p->rtp && ast_rtp_instance_dtmf_mode_get(p->rtp) == AST_RTP_DTMF_MODE_BOTH) {
++			ast_rtp_instance_dtmf_end(p->rtp, digit);
++		} else {
++			res = -1; /* Tell Asterisk to stop inband indications */
++		}
++		break;
+ 	}
+ 	sip_pvt_unlock(p);
+ 
+@@ -6580,6 +6607,10 @@
  		if (i->rtp) {
  			ast_rtp_instance_dtmf_mode_set(i->rtp, AST_RTP_DTMF_MODE_RFC2833);
  		}
@@ -98,7 +111,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  	}
  
  	/* Set file descriptors for audio, video, realtime text and UDPTL as needed */
-@@ -6888,7 +6906,8 @@
+@@ -6888,7 +6919,8 @@
  	}
  	/* Don't forward RFC2833 if we're not supposed to */
  	if (f && (f->frametype == AST_FRAME_DTMF_BEGIN || f->frametype == AST_FRAME_DTMF_END) &&
@@ -108,7 +121,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  		ast_debug(1, "Ignoring DTMF (%c) RTP frame because dtmfmode is not RFC2833\n", f->subclass.integer);
  		return &ast_null_frame;
  	}
-@@ -6917,7 +6936,8 @@
+@@ -6917,7 +6949,8 @@
  				ast_debug(1, "Fax CNG detected on %s\n", ast->name);
  				*faxdetect = 1;
  				/* If we only needed this DSP for fax detection purposes we can just drop it now */
@@ -118,7 +131,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  					ast_dsp_set_features(p->dsp, DSP_FEATURE_DIGIT_DETECT);
  				} else {
  					ast_dsp_free(p->dsp);
-@@ -7176,7 +7196,8 @@
+@@ -7176,7 +7209,8 @@
  	p->capability = sip_cfg.capability;
  	p->allowtransfer = sip_cfg.allowtransfer;
  	if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
@@ -128,7 +141,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  		p->noncodeccapability |= AST_RTP_DTMF;
  	if (p->udptl) {
  		p->t38_maxdatagram = global_t38_maxdatagram;
-@@ -14998,7 +15019,8 @@
+@@ -14998,7 +15032,8 @@
  			p->jointcapability &= p->peercapability;
  		p->maxcallbitrate = peer->maxcallbitrate;
  		if ((ast_test_flag(&p->flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
@@ -138,7 +151,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  			p->noncodeccapability |= AST_RTP_DTMF;
  		else
  			p->noncodeccapability &= ~AST_RTP_DTMF;
-@@ -15796,6 +15818,7 @@
+@@ -15796,6 +15831,7 @@
  	{ SIP_DTMF_SHORTINFO,   "shortinfo" },
  	{ SIP_DTMF_INBAND,      "inband" },
  	{ SIP_DTMF_AUTO,        "auto" },
@@ -146,7 +159,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  	{ -1,                   NULL }, /* terminator */
  };
  
-@@ -21264,7 +21287,7 @@
+@@ -21264,7 +21300,7 @@
  		build_contact(p);			/* Build our contact header */
  
  		if (p->rtp) {
@@ -155,7 +168,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  			ast_rtp_instance_set_prop(p->rtp, AST_RTP_PROPERTY_DTMF_COMPENSATE, ast_test_flag(&p->flags[1], SIP_PAGE2_RFC2833_COMPENSATE));
  		}
  
-@@ -25227,8 +25250,10 @@
+@@ -25227,8 +25263,10 @@
  			ast_set_flag(&flags[0], SIP_DTMF_SHORTINFO);
  		else if (!strcasecmp(v->value, "auto"))
  			ast_set_flag(&flags[0], SIP_DTMF_AUTO);
@@ -167,7 +180,7 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  			ast_set_flag(&flags[0], SIP_DTMF_RFC2833);
  		}
  	} else if (!strcasecmp(v->name, "nat")) {
-@@ -27645,13 +27670,18 @@
+@@ -27645,13 +27683,18 @@
  		ast_clear_flag(&p->flags[0], SIP_DTMF);
  		ast_set_flag(&p->flags[0], SIP_DTMF_INBAND);
  		p->jointnoncodeccapability &= ~AST_RTP_DTMF;
@@ -188,9 +201,9 @@ diff -Naur asterisk-1.8.0-coins/channels/chan_sip.c asterisk-1.8.0-dtmfmode_both
  		enable_dsp_detect(p);
  	} else {
  		disable_dsp_detect(p);
-diff -Naur asterisk-1.8.0-coins/channels/sip/include/sip.h asterisk-1.8.0-dtmfmode_both/channels/sip/include/sip.h
---- asterisk-1.8.0-coins/channels/sip/include/sip.h	2010-11-14 23:17:04.000000000 -0500
-+++ asterisk-1.8.0-dtmfmode_both/channels/sip/include/sip.h	2010-12-11 17:56:18.000000000 -0500
+diff -Naur asterisk-1.8.0/channels/sip/include/sip.h asterisk-1.8.0/channels/sip/include/sip.h
+--- asterisk-1.8.0/channels/sip/include/sip.h	2010-09-15 15:22:15.000000000 -0400
++++ asterisk-1.8.0/channels/sip/include/sip.h	2010-12-11 17:56:18.000000000 -0500
 @@ -19,6 +19,11 @@
   * \brief chan_sip header file
   */
@@ -211,9 +224,9 @@ diff -Naur asterisk-1.8.0-coins/channels/sip/include/sip.h asterisk-1.8.0-dtmfmo
  
  /* NAT settings */
  #define SIP_NAT_FORCE_RPORT     (1 << 18) /*!< DP: Force rport even if not present in the request */
-diff -Naur asterisk-1.8.0-coins/include/asterisk/rtp_engine.h asterisk-1.8.0-dtmfmode_both/include/asterisk/rtp_engine.h
---- asterisk-1.8.0-coins/include/asterisk/rtp_engine.h	2010-11-14 23:17:29.000000000 -0500
-+++ asterisk-1.8.0-dtmfmode_both/include/asterisk/rtp_engine.h	2010-12-11 18:12:51.000000000 -0500
+diff -Naur asterisk-1.8.0/include/asterisk/rtp_engine.h asterisk-1.8.0/include/asterisk/rtp_engine.h
+--- asterisk-1.8.0/include/asterisk/rtp_engine.h	2010-10-01 22:43:45.000000000 -0400
++++ asterisk-1.8.0/include/asterisk/rtp_engine.h	2010-12-11 18:12:51.000000000 -0500
 @@ -62,6 +62,10 @@
   * available for the RTP engine.
   */
@@ -234,3 +247,120 @@ diff -Naur asterisk-1.8.0-coins/include/asterisk/rtp_engine.h asterisk-1.8.0-dtm
  };
  
  /*! Result codes when RTP glue is queried for information */
+diff -Naur asterisk-1.8.0/main/dsp.c asterisk-1.8.0/main/dsp.c
+--- asterisk-1.8.0/main/dsp.c	2010-06-07 13:34:45.000000000 -0400
++++ asterisk-1.8.0/main/dsp.c	2010-12-11 17:03:45.000000000 -0500
+@@ -19,6 +19,15 @@
+  * at the top of the source tree.
+  */
+ 
++/*
++ * This version is klugishly modified by Alex Fink, 2010, to recognise
++ * the US 1700 & 2200 Hz coin tone as if it were a DTMF tone.
++ *
++ * Various things below suggest that a 33ms tone with 33ms separations 
++ * might be too short to be recognised, but it seems to work okay.
++ * Does DTMF_GSIZE matter?
++ */
++
+ /*! \file
+  *
+  * \brief Convenience Signal Processing routines
+@@ -156,6 +165,7 @@
+ 
+ #define DTMF_THRESHOLD		8.0e7
+ #define FAX_THRESHOLD		8.0e7
++#define COIN_THRESHOLD		8.0e7
+ #define FAX_2ND_HARMONIC	2.0     /* 4dB */
+ #define DTMF_NORMAL_TWIST	6.3     /* 8dB */
+ #ifdef	RADIO_RELAX
+@@ -168,6 +178,7 @@
+ #define DTMF_2ND_HARMONIC_ROW       (relax ? 1.7 : 2.5)     /* 4dB normal */
+ #define DTMF_2ND_HARMONIC_COL	63.1    /* 18dB */
+ #define DTMF_TO_TOTAL_ENERGY	42.0
++#define COIN_TO_TOTAL_ENERGY	42.0
+ 
+ #define BELL_MF_THRESHOLD	1.6e9
+ #define BELL_MF_TWIST		4.0     /* 6dB */
+@@ -256,6 +267,8 @@
+ {
+ 	goertzel_state_t row_out[4];
+ 	goertzel_state_t col_out[4];
++	goertzel_state_t coin_low_out;
++	goertzel_state_t coin_high_out;
+ 	int hits_to_begin;		/* How many successive hits needed to consider begin of a digit */
+ 	int misses_to_end;		/* How many successive misses needed to consider end of a digit */
+ 	int hits;			/* How many successive hits we have seen already */
+@@ -296,10 +309,13 @@
+ static const float dtmf_col[] = {
+ 	1209.0, 1336.0, 1477.0, 1633.0
+ };
++static const float coin_low = 1700.0;
++static const float coin_high = 2200.0;
+ static const float mf_tones[] = {
+ 	700.0, 900.0, 1100.0, 1300.0, 1500.0, 1700.0
+ };
+ static const char dtmf_positions[] = "123A" "456B" "789C" "*0#D";
++static const char coin_char = '$';
+ static const char bell_mf_positions[] = "1247C-358A--69*---0B----#";
+ static int thresholds[THRESHOLD_MAX];
+ 
+@@ -488,6 +504,8 @@
+ 		goertzel_init(&s->col_out[i], dtmf_col[i], DTMF_GSIZE);
+ 		s->energy = 0.0;
+ 	}
++  goertzel_init(&s->coin_low_out, coin_low, DTMF_GSIZE);
++  goertzel_init(&s->coin_high_out, coin_high, DTMF_GSIZE);  
+ 	s->current_sample = 0;
+ 	s->hits = 0;
+ 	s->misses = 0;
+@@ -642,6 +660,8 @@
+ {
+ 	float row_energy[4];
+ 	float col_energy[4];
++  float coin_low_energy;
++  float coin_high_energy;
+ 	float famp;
+ 	int i;
+ 	int j;
+@@ -680,6 +700,8 @@
+ 			goertzel_sample(s->td.dtmf.col_out + 2, amp[j]);
+ 			goertzel_sample(s->td.dtmf.row_out + 3, amp[j]);
+ 			goertzel_sample(s->td.dtmf.col_out + 3, amp[j]);
++			goertzel_sample(&s->td.dtmf.coin_low_out, amp[j]);
++			goertzel_sample(&s->td.dtmf.coin_high_out, amp[j]);
+ 		}
+ 		s->td.dtmf.current_sample += (limit - sample);
+ 		if (s->td.dtmf.current_sample < DTMF_GSIZE) {
+@@ -701,6 +723,22 @@
+ 			}
+ 		}
+ 		hit = 0;
++    /* Check for the coin: test if it's past threshold and 
++       it beats all the DTMF frequency peaks.  (No twist test.) */
++    coin_low_energy = goertzel_result (&s->td.dtmf.coin_low_out);
++    coin_high_energy = goertzel_result (&s->td.dtmf.coin_high_out);
++    if (coin_low_energy >= COIN_THRESHOLD &&
++        coin_high_energy >= COIN_THRESHOLD &&
++        coin_low_energy > row_energy[best_row] &&
++        coin_high_energy > row_energy[best_row] &&
++        coin_low_energy > col_energy[best_col] &&
++        coin_high_energy > col_energy[best_col]) {
++			/* fraction of total energy test */
++			if ((coin_low_energy + coin_high_energy) > COIN_TO_TOTAL_ENERGY * s->td.dtmf.energy) {
++				/* Got a hit */
++				hit = coin_char;
++			}
++    }
+ 		/* Basic signal level test and the twist test */
+ 		if (row_energy[best_row] >= DTMF_THRESHOLD && 
+ 		    col_energy[best_col] >= DTMF_THRESHOLD &&
+@@ -774,6 +812,8 @@
+ 			goertzel_reset(&s->td.dtmf.row_out[i]);
+ 			goertzel_reset(&s->td.dtmf.col_out[i]);
+ 		}
++    goertzel_reset(&s->td.dtmf.coin_low_out);
++    goertzel_reset(&s->td.dtmf.coin_high_out);
+ 		s->td.dtmf.energy = 0.0;
+ 		s->td.dtmf.current_sample = 0;
+ 	}
