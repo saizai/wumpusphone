@@ -48,7 +48,7 @@ class Wumpus
     @moves = 0
     reset_timeout!
 
-    @current_hold = 1 # TEMPORARY rand(3)
+    @current_hold = rand(3)
     
     seed_wumpus
   end
