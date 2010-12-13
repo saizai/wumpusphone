@@ -132,7 +132,7 @@ class Wumpus
     end
     
     # Successfully phreaked. Play the reward.
-    @call.dtmf current_hold['dtmf']
+    @call.play File.join(Dir.pwd, 'audio', 'holds', "reward_#{@current_hold}")
     ahn_log_with_header "phreaked: #{current_hold['dtmf']}"
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
     
