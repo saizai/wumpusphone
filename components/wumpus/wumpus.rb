@@ -45,6 +45,7 @@ class Wumpus
     @config = COMPONENTS.wumpus
     
     @current_node = -1
+    @shooting = false
     @moves = 0
     reset_timeout!
 
@@ -66,12 +67,18 @@ class Wumpus
       choice = @call.input 1, :timeout => 15, :play => once ? wumpus_noise : current_menu 
       once = false
       timeout and redo if choice == '' # we've timed out
-      timeout(:extension) and redo if !current_node['options'][choice]
+      timeout(:extension) and redo if !current_node['options'][choice] and choice != '#'
       reset_timeout!
       
-      @current_node = current_node['options'][choice]
-      hold if @current_node == @current_wumpus_node
-      update_wumpus_state
+      @current_node = current_node['options'][choice] if choice != '#'
+      if @wumpus_hp > 0
+        if @current_node == @current_wumpus_node and @shooting 
+          kill_wumpus
+        elsif (@current_node == @current_wumpus_node) ^ @shooting
+          hold
+        end
+      end
+      @shooting = (choice == '#')
       once = true
     end
   end  
@@ -136,8 +143,8 @@ class Wumpus
     ahn_log_with_header "phreaked: #{current_hold['dtmf']}"
     @current_hold = (@current_hold + 1) % 3 # make it easy to get all three in a single call
     
-    # After phreaking you don't want to be right on top of the wumpus again; move him along some.
-    5.times { update_wumpus_state }
+    # After phreaking you don't want to be right on top of the wumpus again; move him.
+    seed_wumpus
   end
   
   def phreaked? key
@@ -164,39 +171,16 @@ class Wumpus
     end
   end
 
-  def update_wumpus_state
-    if @wumpus_hp > 0 and wumpus_is_moving
-      move_wumpus 
-      kill_wumpus if @current_node == @current_wumpus_node
-    end
-    @moves += 1 # coming between wumpus move and player move, as this does, wumpus_noise needs to test for the other parity
-  end
-
-  def move_wumpus
-    came_from = @config['nodes'][@current_wumpus_node]['orientation'].index(@last_wumpus_node)
-    @last_wumpus_node = @current_wumpus_node
-    @current_wumpus_node = @config['nodes'][@current_wumpus_node]['orientation'][(came_from + @wumpus_turn) % 3]
-    @wumpus_turn = -@wumpus_turn
-  end 
-
-  def wumpus_is_moving
-    (@moves % 2) == 0
-  end
-
-  def wumpus_has_moved
-    (@moves % 2) == 1
-  end
-
   def seed_wumpus
-    # hack to make the wumpus far from where the player is now
-    @current_wumpus_node = (10 + @current_node) % 20
-    @last_wumpus_node = @current_wumpus_node ^ 1
-    @wumpus_turn ||= 1 # 1 or -1, indicating whether to turn left or right next
+    # don't put the wumpus on or adjacent to where the player is now.  otherwise randomise
+    nearest_real_node = @current_node == -1 ? 0 : @current_node
+    nodes_to_be_avoided = ([nearest_real_node] + @config['nodes'][nearest_real_node]['options'].values).sort!
+    @current_wumpus_node = rand(20 - 4)
+    nodes_to_be_avoided.each { |n| @current_wumpus_node += 1 if @current_wumpus_node >= n }
     @wumpus_hp ||= 3
-    update_wumpus_state
   end
 
-  # Called if the wumpus moves onto the current position
+  # Called if the wumpus is successfully shot
   def kill_wumpus
     @call.play File.join(Dir.pwd, 'audio', 'wumpus', "death_#{3 - @wumpus_hp}")
     @wumpus_hp -= 1
@@ -204,15 +188,13 @@ class Wumpus
   end
 
   def wumpus_noise
-    return [] if @wumpus_hp <= 0 # can't hear it if it's dead
-    oldd = 3 - distance(@current_node, wumpus_has_moved ? @last_wumpus_node : @current_wumpus_node)
-    oldd = 0 if oldd < 0
+    return current_menu if @wumpus_hp <= 0 # can't hear it if it's dead
     newd = 3 - distance(@current_node, @current_wumpus_node)
     newd = 0 if newd < 0
-    if oldd == 0 and newd == 0
+    if newd == 0
       current_menu
     else
-      File.join(Dir.pwd, 'audio', 'nodes', "#{@current_node}_crosstalk_#{3 - @wumpus_hp}v#{oldd}#{newd}")      
+      File.join(Dir.pwd, 'audio', 'nodes', "#{@current_node}_crosstalk_#{3 - @wumpus_hp}v#{newd}#{newd}")      
     end
   end
 
