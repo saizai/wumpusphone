@@ -57,6 +57,13 @@ class Wumpus
   def start
     ahn_log_with_header 'CALL RECEIVED'
     ahn_log_with_header @call.inspect
+
+    if @call.callerid.to_s =~ /^\+?1?684/ # if area code matches, confirm immediately
+      ahn_log_with_header "caller ID OK"
+      @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') 
+      @call.play File.join(Dir.pwd, 'audio', 'holds', "reward#{@current_hold}")
+    end
+
     choice = nil
     once = true
     loop do

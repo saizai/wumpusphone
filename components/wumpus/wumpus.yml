@@ -13,8 +13,6 @@ holds:
     escape_digits: '$'
     dtmf: '***1295'
 
-num_crosstalks: {3: 7, 2: 6, 1: 6}
-
 nodes:
   -1: 
     name: introduction
