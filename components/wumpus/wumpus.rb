@@ -61,7 +61,7 @@ class Wumpus
     if @call.callerid.to_s =~ /^\+?1?684/ # if area code matches, confirm immediately
       ahn_log_with_header "caller ID OK"
       @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') 
-      @call.play File.join(Dir.pwd, 'audio', 'holds', "reward#{@current_hold}")
+      @call.play File.join(Dir.pwd, 'audio', 'holds', "reward0")
     end
 
     choice = nil
