@@ -74,6 +74,7 @@ class Wumpus
       choice = @call.input 1, :timeout => 15, :play => once ? wumpus_noise : current_menu 
       once = false
       timeout and redo if choice == '' # we've timed out
+      redo if choice == '0' 
       timeout(:extension) and redo if !current_node['options'][choice] and choice != '#'
       reset_timeout!
       
