@@ -58,7 +58,7 @@ class Wumpus
     ahn_log_with_header 'CALL RECEIVED'
     ahn_log_with_header @call.inspect
 
-    if @call.callerid.to_s =~ /^\+?1?684/ # if area code matches, confirm immediately
+    if american_samoa? @call.callerid
       ahn_log_with_header "caller ID OK"
       @call.play File.join(Dir.pwd, 'audio', 'holds', 'caller_id_ok') 
       @call.play File.join(Dir.pwd, 'audio', 'holds', "reward0")
@@ -68,9 +68,6 @@ class Wumpus
     once = true
     loop do
       ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
-      # TODO: actually we'd rather not play these in sequence but overlappingly; that has to be prepared in sox.
-      # also, ideally, the hold would only be invoked after the wumpus is heard to move onto the player, one second in.
-      # So maybe it shd be one second of crosstalk + silence, and one second of crosstalk + menu.
       choice = @call.input 1, :timeout => 15, :play => once ? wumpus_noise : current_menu 
       once = false
       timeout and redo if choice == '' # we've timed out
@@ -154,11 +151,16 @@ class Wumpus
     # After phreaking you don't want to be right on top of the wumpus again; move him.
     seed_wumpus
   end
+
+  def american_samoa? number
+    # deny callerids that are too long, 'cause they're widget uuids, and those might accidentally match /^1?684/
+    number.to_s =~ /^\+?1?684/ and number.to_s.length < 32
+  end
   
   def phreaked? key
     case current_hold['name']
     when 'caller_id':
-      @call.callerid.to_s =~ /^\+?1?684/ # extract area code
+      american_samoa? @call.callerid # extract area code
     when 'priority_override', 'insert_coin':
       key # we've already gotten the correct digit, if we're breaking interruptible_play
     else
