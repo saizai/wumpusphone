@@ -67,6 +67,7 @@ class Wumpus
     choice = nil
     once = true
     loop do
+      @call.input 1, :timeout => 1 # kluge: throw out one second of input, so as not to overinterpret duplicates
       ahn_log_with_header "player: #{@current_node}\twumpus: #{@current_wumpus_node}\tHP: #{@wumpus_hp}\tlast input: #{choice}"
       choice = @call.input 1, :timeout => 15, :play => once ? wumpus_noise : current_menu 
       once = false
