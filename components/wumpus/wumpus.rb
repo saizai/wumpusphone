@@ -14,7 +14,7 @@ methods_for :global do
     play File.join(dir, hash)
   end
   
-  # OMG what a kludge. But it gets the job done quickly, as we don't have time to figure out the proper way.
+  # OMG what a kludge. But it gets the job done quickly, as we don't have time to figure out the proper way
   def calls_list(call = nil)
     $CALLS_LIST ||= {}
     
@@ -29,7 +29,7 @@ methods_for :global do
   end
     
   def prefix
-    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{Adhearsion.active_calls.size} #{"%-3.1f" % (@call || self.call).channel} #{"%-5d" % ((Time.now - @start_time) / 60.0) rescue nil}"
+    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{Adhearsion.active_calls.size} #{"%-40s" % (@call || self.call).channel} #{"%-3.1f" % ((Time.now - @start_time) / 60.0) rescue nil}"
   end
   
   def ahn_log_with_header text
