@@ -15,7 +15,7 @@ methods_for :global do
   end
   
   def prefix
-    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{(@call || self.call).uniqueid}"
+    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{Adhearsion::Calls.size} #{"%-40s" % (@call || self.call).channel}"
   end
   
   def ahn_log_with_header text
