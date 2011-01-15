@@ -26,6 +26,11 @@ methods_for :global do
       $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
     
+    filename = File.join(Dir.pwd, 'calls_list.txt')
+    callsfile = File.open(filename, 'w')
+    callsfile << $CALLS_LIST.to_s
+    callsfile.close
+    
     $CALLS_LIST
   end
     
