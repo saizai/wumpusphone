@@ -30,24 +30,3 @@
 #
 # Note: events are mostly for components to register and expose to you.
 ##
-
-def ending_log
-  ahn_log "CALLS: #{"%-3d" % $CALLS_LIST.count} #{"%-3.1f" % ($CALLS_LIST.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} #{$CALLS_LIST.inspect}"
-  ahn_log "#{prefix}\t#{text}"
-end
-
-events.asterisk.failed_call.each do |call|
-  ending_log "CALL FAILED"
-  # 1st number is # of unique callers (though this is very poorly aggregated); 2nd is total call duration
-  hangup
-end
-
-events.asterisk.hungup_call.each do |call|
-  ending_log "CALL HUNG UP"
-  hangup
-end
-
-events.asterisk.after_call.each do |call|
-  ending_log "AFTER CALL"
-  hangup
-end
