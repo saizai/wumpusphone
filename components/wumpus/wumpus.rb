@@ -30,7 +30,7 @@ methods_for :global do
     callsfile = File.open(filename, 'w')
     callsfile << <<-END
     UPDATED: #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}<br/><br/>
-    <h4>CURRENT data as of the last logger hit</h4>:<br/>
+    <h4>CURRENT data as of the last logger hit:</h4><br/>
     active calls: #{Adhearsion.active_calls.size}<br/>
     details: #{Adhearsion.active_calls.inspect}<br/>
     
