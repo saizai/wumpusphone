@@ -19,11 +19,13 @@ methods_for :global do
     $CALLS_LIST ||= {}
     
     if call
-      $CALLS_LIST[call.channel] ||= {}
-      $CALLS_LIST[call.channel][:calls] ||= {}
+      ch = call.channel
+      ch.sub! /-[0-9a-f]{8}$/, '' # remove the random appendage so we can aggregate
+      $CALLS_LIST[ch] ||= {}
+      $CALLS_LIST[ch][:calls] ||= {}
       # not thread-safe at all or anything. not even Correct. HACK.
-      $CALLS_LIST[call.channel][:calls][@start_time.strftime("%Y-%m-%d %H:%M:%S")] = (Time.now - @start_time)
-      $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
+      $CALLS_LIST[ch][:calls][@start_time.strftime("%Y-%m-%d %H:%M:%S")] = (Time.now - @start_time)
+      $CALLS_LIST[ch][:duration] = $CALLS_LIST[ch][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
     
     filename = File.join(Dir.pwd, 'calls_list.html')
