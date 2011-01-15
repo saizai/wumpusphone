@@ -30,9 +30,9 @@ methods_for :global do
     callsfile = File.open(filename, 'w')
     callsfile = <<-END
     CALLS:<br/>
-    # unique callers (ish): #{"%-3d" % calls.count}<br/>
-    total call time: #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
-    details #{calls.inspect}"
+    # unique callers (ish): #{"%-3d" % $CALLS_LIST.count}<br/>
+    total call time: #{"%-3.1f" % ($CALLS_LIST.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
+    details #{$CALLS_LIST.inspect}"
     END
     callsfile.close
     
