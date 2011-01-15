@@ -30,3 +30,13 @@
 #
 # Note: events are mostly for components to register and expose to you.
 ##
+
+events.asterisk.failed_call.each do |call|
+  @call ||= call
+  ahn_log_with_header "CALL FAILED"
+end
+
+events.asterisk.hungup_call.each do |call|
+  @call ||= call
+  ahn_log_with_header "CALL HUNG UP"
+end
