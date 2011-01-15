@@ -19,10 +19,10 @@ Adhearsion::Configuration.configure do |config|
   # config.automatically_answer_incoming_calls = false
   
   # Whether the other end hanging up should end the call immediately. Defaults to true.
-  # config.end_call_on_hangup = false
+  config.end_call_on_hangup = false
   
   # Whether to end the call immediately if an unrescued exception is caught. Defaults to true.
-  # config.end_call_on_error = false
+  config.end_call_on_error = false
   
   # By default Asterisk is enabled with the default settings
   config.enable_asterisk

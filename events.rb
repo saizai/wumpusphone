@@ -34,9 +34,11 @@
 events.asterisk.failed_call.each do |call|
   @call ||= call
   ahn_log_with_header "CALL FAILED"
+  hangup
 end
 
 events.asterisk.hungup_call.each do |call|
   @call ||= call
   ahn_log_with_header "CALL HUNG UP"
+  hangup
 end
