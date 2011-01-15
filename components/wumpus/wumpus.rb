@@ -21,7 +21,8 @@ methods_for :global do
     if call
       $CALLS_LIST[call.channel] ||= {}
       $CALLS_LIST[call.channel][:calls] ||= {}
-      $CALLS_LIST[call.channel][:calls][@start_time] = Time.now - @start_time # not thread-safe at all or anything. HACK.
+      # not thread-safe at all or anything. not even Correct. HACK.
+      $CALLS_LIST[call.channel][:calls][@start_time] = (Time.now - @start_time).strftime("%Y-%m-%d %H:%M:%S") 
       $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
     
@@ -33,7 +34,9 @@ methods_for :global do
   end
   
   def ahn_log_with_header text
-    ahn_log "CALLS: #{calls_list(@call || self.call).inspect}"
+    calls = calls_list(@call || self.call)
+    # 1st number is # of unique callers (though this is very poorly aggregated); 2nd is total call duration
+    ahn_log "CALLS: #{"%-3d" % calls.count} #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} #{calls.inspect}"
     ahn_log "#{prefix}\t#{text}"
   end
 end
