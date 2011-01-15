@@ -28,7 +28,7 @@ methods_for :global do
     
     filename = File.join(Dir.pwd, 'calls_list.txt')
     callsfile = File.open(filename, 'w')
-    callsfile << $CALLS_LIST.to_s
+    callsfile << $CALLS_LIST.inspect.to_s
     callsfile.close
     
     $CALLS_LIST
