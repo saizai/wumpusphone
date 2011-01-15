@@ -26,9 +26,14 @@ methods_for :global do
       $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
     
-    filename = File.join(Dir.pwd, 'calls_list.txt')
+    filename = File.join(Dir.pwd, 'calls_list.html')
     callsfile = File.open(filename, 'w')
-    callsfile << $CALLS_LIST.inspect.to_s
+    callsfile <<-END
+    CALLS:<br/>
+    # unique callers (ish): #{"%-3d" % calls.count}<br/>
+    total call time: #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
+    details: #{calls.inspect}"
+    END
     callsfile.close
     
     $CALLS_LIST
