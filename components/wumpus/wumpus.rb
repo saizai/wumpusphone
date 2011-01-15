@@ -28,11 +28,11 @@ methods_for :global do
     
     filename = File.join(Dir.pwd, 'calls_list.html')
     callsfile = File.open(filename, 'w')
-    callsfile <<-END
+    callsfile = <<-END
     CALLS:<br/>
     # unique callers (ish): #{"%-3d" % calls.count}<br/>
     total call time: #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
-    details: #{calls.inspect}"
+    details #{calls.inspect}"
     END
     callsfile.close
     
