@@ -30,7 +30,12 @@ methods_for :global do
     callsfile = File.open(filename, 'w')
     callsfile << <<-END
     UPDATED: #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}<br/><br/>
-    All info cumulative since Adhearsion was last started.<br/>
+    <h4>CURRENT data as of the last logger hit</h4>:<br/>
+    active calls: #{Adhearsion.active_calls.size}<br/>
+    details: #{Adhearsion.active_calls.inspect}<br/>
+    
+    <br/>
+    <h4>CUMULATIVE data since Adhearsion was last started:</h4><br/>
     # unique callers (ish): #{"%-3d" % $CALLS_LIST.count}<br/>
     total call time: #{"%-3.1f" % ($CALLS_LIST.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
     call details:<br/><br/> #{$CALLS_LIST.inspect}"
