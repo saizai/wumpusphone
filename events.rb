@@ -42,3 +42,9 @@ events.asterisk.hungup_call.each do |call|
   ahn_log_with_header "CALL HUNG UP"
   hangup
 end
+
+events.asterisk.after_call.each do |call|
+  @call ||= call
+  ahn_log_with_header "AFTER CALL"
+  hangup
+end
