@@ -22,7 +22,7 @@ methods_for :global do
       $CALLS_LIST[call.channel] ||= {}
       $CALLS_LIST[call.channel][:calls] ||= {}
       # not thread-safe at all or anything. not even Correct. HACK.
-      $CALLS_LIST[call.channel][:calls][@start_time] = (Time.now - @start_time).strftime("%Y-%m-%d %H:%M:%S") 
+      $CALLS_LIST[call.channel][:calls][@start_time.strftime("%Y-%m-%d %H:%M:%S")] = (Time.now - @start_time)
       $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
     
