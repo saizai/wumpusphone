@@ -52,9 +52,8 @@ methods_for :global do
   end
   
   def ahn_log_with_header text
-    calls = calls_list(@call || self.call)
-    # 1st number is # of unique callers (though this is very poorly aggregated); 2nd is total call duration
-    ahn_log "CALLS: #{"%-3d" % calls.count} #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} #{calls.inspect}"
+    # stupid way to hook this in. Better to use events but we can't 'cause we don't use call variables properly.
+    calls_list(@call || self.call) 
     ahn_log "#{prefix}\t#{text}"
   end
 end
