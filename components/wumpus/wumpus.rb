@@ -14,11 +14,26 @@ methods_for :global do
     play File.join(dir, hash)
   end
   
+  # OMG what a kludge. But it gets the job done quickly, as we don't have time to figure out the proper way.
+  def calls_list(call = nil)
+    $CALLS_LIST ||= {}
+    
+    if call
+      $CALLS_LIST[call.channel] ||= {}
+      $CALLS_LIST[call.channel][:calls] ||= {}
+      $CALLS_LIST[call.channel][:calls][@start_time] = Time.now - @start_time # not thread-safe at all or anything. HACK.
+      $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
+    end
+    
+    $CALLS_LIST
+  end
+    
   def prefix
-    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{Adhearsion::Calls.size} #{"%-40s" % (@call || self.call).channel}"
+    "#{Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")} #{Adhearsion.active_calls.size} #{"%-3.1f" % (@call || self.call).channel} #{"%-5d" % ((Time.now - @start_time) / 60.0) rescue nil}"
   end
   
   def ahn_log_with_header text
+    ahn_log "CALLS: #{calls_list(@call || self.call).inspect}"
     ahn_log "#{prefix}\t#{text}"
   end
 end
@@ -43,6 +58,8 @@ class Wumpus
   def initialize(call)
     @call = call
     @config = COMPONENTS.wumpus
+    
+    @start_time = Time.now
     
     @current_node = -1
     @shooting = false
