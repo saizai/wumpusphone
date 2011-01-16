@@ -19,12 +19,30 @@ methods_for :global do
     $CALLS_LIST ||= {}
     
     if call
-      $CALLS_LIST[call.channel] ||= {}
-      $CALLS_LIST[call.channel][:calls] ||= {}
+      ch = call.channel
+      ch.sub! /-[0-9a-f]{8}$/, '' # remove the random appendage so we can aggregate
+      $CALLS_LIST[ch] ||= {}
+      $CALLS_LIST[ch][:calls] ||= {}
       # not thread-safe at all or anything. not even Correct. HACK.
-      $CALLS_LIST[call.channel][:calls][@start_time.strftime("%Y-%m-%d %H:%M:%S")] = (Time.now - @start_time)
-      $CALLS_LIST[call.channel][:duration] = $CALLS_LIST[call.channel][:calls].values.inject( 0 ) { |sum,x| sum+x };
+      $CALLS_LIST[ch][:calls][@start_time.strftime("%Y-%m-%d %H:%M:%S")] = (Time.now - @start_time)
+      $CALLS_LIST[ch][:duration] = $CALLS_LIST[ch][:calls].values.inject( 0 ) { |sum,x| sum+x };
     end
+    
+    filename = File.join(Dir.pwd, 'calls_list.html')
+    callsfile = File.open(filename, 'w')
+    callsfile << <<-END
+    UPDATED: #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}<br/><br/>
+    <h4>CURRENT data as of the last logger hit:</h4><br/>
+    active calls: #{Adhearsion.active_calls.size}<br/>
+    details: #{Adhearsion.active_calls.inspect}<br/>
+    
+    <br/>
+    <h4>CUMULATIVE data since Adhearsion was last started:</h4><br/>
+    # unique callers (ish): #{"%-3d" % $CALLS_LIST.count}<br/>
+    total call time: #{"%-3.1f" % ($CALLS_LIST.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} minutes<br/>
+    call details:<br/><br/> #{$CALLS_LIST.inspect}"
+    END
+    callsfile.close
     
     $CALLS_LIST
   end
@@ -34,9 +52,8 @@ methods_for :global do
   end
   
   def ahn_log_with_header text
-    calls = calls_list(@call || self.call)
-    # 1st number is # of unique callers (though this is very poorly aggregated); 2nd is total call duration
-    #ahn_log "CALLS: #{"%-3d" % calls.count} #{"%-3.1f" % (calls.values.map{|x| x[:duration]}.inject( 0 ) { |sum,x| sum+x } / 60.0)} #{calls.inspect}"
+    # stupid way to hook this in. Better to use events but we can't 'cause we don't use call variables properly.
+    # calls_list(@call || self.call) 
     ahn_log "#{prefix}\t#{text}"
   end
 end
