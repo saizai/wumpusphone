@@ -53,7 +53,7 @@ methods_for :global do
   
   def ahn_log_with_header text
     # stupid way to hook this in. Better to use events but we can't 'cause we don't use call variables properly.
-    # calls_list(@call || self.call) 
+    calls_list(@call || self.call) 
     ahn_log "#{prefix}\t#{text}"
   end
 end
