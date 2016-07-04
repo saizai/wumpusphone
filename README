@@ -1,3 +1,14 @@
+== The puzzle ==
+
+This is code for Making the Possible Impossible, part of the 2011 MIT Puzzle Hunt:
+http://www.mit.edu/~puzzle/2011/puzzles/zelda/making_the_possible_impossible/
+
+The solution (and explanation) is here:
+http://www.mit.edu/~puzzle/2011/puzzles/zelda/making_the_possible_impossible/answer/
+
+
+== Running the code ==
+
 Start your new app with "ahn start /path/to/your/app"
 
 If you wish to use Adhearsion to control Asterisk's dialplan,
